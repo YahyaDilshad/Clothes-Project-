@@ -1,0 +1,6 @@
+{
+  "name": "Clothing Brand Admin Dashboard",
+  "description": "A comprehensive e-commerce admin dashboard for managing apparel products, inventory, orders, customers, categories, discounts, returns, analytics, website banners, and system settings.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

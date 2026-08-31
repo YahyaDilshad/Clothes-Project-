@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-charcoal/10;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    overflow-x: hidden;
+  }
+  h1, h2, h3, h4 {
+    @apply font-display;
+  }
+  ::selection {
+    @apply bg-gold/30;
+  }
+  :focus-visible {
+    outline: 2px solid #B08A4A;
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .container-fk {
+    @apply max-w-content mx-auto px-4 sm:px-6 lg:px-10;
+  }
+  .eyebrow {
+    @apply text-[11px] tracking-widest2 uppercase text-gold font-medium;
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 bg-charcoal text-ivory px-7 py-3.5 text-sm tracking-wide uppercase font-medium hover:bg-gold transition-colors duration-300 disabled:opacity-40 disabled:pointer-events-none;
+  }
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2 border border-charcoal text-charcoal px-7 py-3.5 text-sm tracking-wide uppercase font-medium hover:bg-charcoal hover:text-ivory transition-colors duration-300;
+  }
+  .btn-gold {
+    @apply inline-flex items-center justify-center gap-2 bg-gold text-ivory px-7 py-3.5 text-sm tracking-wide uppercase font-medium hover:bg-charcoal transition-colors duration-300;
+  }
+  .section-title {
+    @apply font-display text-3xl sm:text-4xl text-charcoal;
+  }
+  .input-fk {
+    @apply w-full bg-white border border-charcoal/15 px-4 py-3 text-sm text-charcoal placeholder:text-stone/70 focus:border-gold focus:outline-none transition-colors;
+  }
+  .label-fk {
+    @apply block text-xs uppercase tracking-wide text-stone mb-1.5;
+  }
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
