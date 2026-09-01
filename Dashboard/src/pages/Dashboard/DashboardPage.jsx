@@ -53,31 +53,7 @@ export const DashboardPage = () => {
 
     return (
         <div className="space-y-8 max-w-[1600px] mx-auto pb-10">
-            {/* Top Banner / Welcome */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-neutral-200 shadow-sm transition-all">
-                <div>
-                    <div className="flex items-center gap-3">
-                        <h2 className="text-2xl font-bold text-[#181818] tracking-tight">Executive Overview</h2>
-                        <span className="px-2.5 py-1 text-[10px] font-bold bg-[#3F7D5A]/10 text-[#3F7D5A] border border-[#3F7D5A]/20 rounded-lg uppercase">
-                            Live System
-                        </span>
-                    </div>
-                    <p className="text-sm text-[#6B6B6B] mt-1 font-medium">
-                        Real-time operations and store velocity analytics.
-                    </p>
-                </div>
-
-                <div className="flex items-center gap-3">
-                    <button onClick={() => navigate('/products/new')} className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#181818] hover:bg-black text-white rounded-xl text-sm font-bold shadow-lg shadow-neutral-200 transition-all active:scale-95 cursor-pointer">
-                        <Plus className="w-4 h-4 text-[#B08D57]"/>
-                        <span>New Product</span>
-                    </button>
-                    <button onClick={() => navigate('/orders')} className="inline-flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-neutral-50 text-[#181818] border border-neutral-200 rounded-xl text-sm font-bold transition-all shadow-sm active:scale-95 cursor-pointer">
-                        <span>Manage Orders</span>
-                    </button>
-                </div>
-            </div>
-
+      
             {/* KPI Cards - Updated Grid to show 4 cards in a row on Desktop */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                 <StatCard title="Total Revenue" value={formatPKR(totalRevenue)} change={18.6} icon={DollarSign}/>

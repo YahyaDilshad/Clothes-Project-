@@ -32,6 +32,13 @@ import { AnalyticsPage } from './pages/Analytics/AnalyticsPage';
 import { WebsiteManagementPage } from './pages/Website/WebsiteManagementPage';
 import { UsersRolesPage } from './pages/Users/UsersRolesPage';
 import { SettingsPage } from './pages/Settings/SettingsPage';
+import Stocks from './pages/Stock/Stock';
+import BillingPage from './pages/Billings/billings';
+import Exchange from './pages/Exchange/exchange';
+import Staff from './pages/Staff/staff';
+import Permissions from './pages/Permission/permission';
+import Expense from './pages/Expense/expense';
+import Revenue from './pages/Revenue/revenue';
 
 export function App() {
   return (
@@ -53,6 +60,13 @@ export function App() {
             {/* Index Route - Points to Dashboard */}
             <Route index element={<DashboardPage />} />
             
+            <Route path="/stocks" element={<Stocks/>} />
+            <Route path="/staff" element={<Staff/>} />
+            <Route path="/expense" element={<Expense/>} />
+            <Route path="/revenue" element={<Revenue/>} />
+            <Route path="/permissions" element={<Permissions/>} />
+            <Route path="/exchange" element={<Exchange/>} />
+            <Route path="/billing" element={<BillingPage/>} />
             {/* Dashboard Redirect */}
             <Route path="dashboard" element={<Navigate to="/" replace />} />
             

@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Lock, User, Eye, EyeOff, ArrowRight, ShieldCheck, Sparkles, AlertCircle, KeyRound, CheckCircle2, Package, TrendingUp, } from 'lucide-react';
+import { 
+    Lock, User, Eye, EyeOff, ArrowRight, ShieldCheck, 
+    Sparkles, AlertCircle, KeyRound, CheckCircle2, 
+    Package, TrendingUp 
+} from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import Logo from '../../../assets/logo.png'; // Aapka shared logo
+
 export const LoginPage = () => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -12,228 +18,164 @@ export const LoginPage = () => {
     const [rememberMe, setRememberMe] = useState(true);
     const [error, setError] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
-    // Redirect if already authenticated
+
     useEffect(() => {
         if (isAuthenticated) {
             const from = location.state?.from?.pathname || '/';
             navigate(from, { replace: true });
         }
     }, [isAuthenticated, navigate, location]);
+
     const handleSubmit = (e) => {
         e.preventDefault();
         setError(null);
-        if (!username.trim()) {
-            setError('Please enter your username.');
-            return;
-        }
-        if (!password.trim()) {
-            setError('Please enter your password.');
+        if (!username.trim() || !password.trim()) {
+            setError('Please enter both username and password.');
             return;
         }
         setIsLoading(true);
-        // Subtle natural verification delay for security feel
         setTimeout(() => {
             const result = login(username, password);
             setIsLoading(false);
             if (result.success) {
                 const from = location.state?.from?.pathname || '/';
                 navigate(from, { replace: true });
+            } else {
+                setError(result.message || 'Invalid credentials.');
             }
-            else {
-                setError(result.message || 'Invalid username or password.');
-            }
-        }, 400);
+        }, 600);
     };
+
     const handleQuickFill = () => {
         setUsername('apexiums');
         setPassword('apexiums1212');
         setError(null);
     };
-    return (<div className="min-h-screen w-full bg-neutral-950 text-neutral-100 flex flex-col justify-center items-center p-4 sm:p-6 lg:p-10 relative overflow-hidden">
-      {/* Subtle Background Glows */}
-      <div className="absolute top-1/4 -left-32 w-96 h-96 bg-neutral-800/20 rounded-full blur-3xl pointer-events-none"/>
-      <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-neutral-800/20 rounded-full blur-3xl pointer-events-none"/>
 
-      {/* Main Container Card */}
-      <div className="w-full max-w-5xl bg-neutral-900 border border-neutral-800/90 rounded-3xl shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 z-10">
-        
-        {/* Left Editorial Visual Section */}
-        <div className="lg:col-span-5 relative hidden lg:flex flex-col justify-between p-8 xl:p-10 bg-neutral-950 overflow-hidden border-r border-neutral-800/80">
-          {/* Background Fashion Imagery */}
-          <div className="absolute inset-0 z-0">
-            <img src="https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=1200&q=85" alt="Haute Couture Apparel" className="w-full h-full object-cover opacity-35 filter grayscale contrast-125"/>
-            <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/70 to-neutral-950/40"/>
-          </div>
+    return (
+        <div className="min-h-screen w-full bg-[#0a0a0a] text-neutral-100 flex flex-col justify-center items-center p-4 relative overflow-hidden">
+            {/* Background Glows */}
+            <div className="absolute top-1/4 -left-32 w-96 h-96 bg-[#B08D57]/10 rounded-full blur-3xl pointer-events-none transition-opacity duration-1000"/>
+            <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-[#B08D57]/5 rounded-full blur-3xl pointer-events-none transition-opacity duration-1000"/>
 
-          {/* Top Brand Mark */}
-          <div className="relative z-10">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-white text-neutral-950 flex items-center justify-center font-serif font-black text-xl shadow-lg tracking-wider">
-                A
-              </div>
-              <div>
-                <h1 className="text-base font-bold text-white tracking-widest uppercase font-serif">
-                  APEXIUMS
-                </h1>
-                <p className="text-[10px] text-neutral-400 font-medium tracking-widest uppercase">
-                  Haute Couture & Ready-to-Wear
-                </p>
-              </div>
-            </div>
-          </div>
+            <div className="w-full max-w-5xl bg-neutral-900 border border-neutral-800 rounded-3xl shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 z-10">
+                
+                {/* Left Section (Editorial) */}
+                <div className="lg:col-span-5 relative hidden lg:flex flex-col justify-between p-10 bg-[#050505] border-r border-neutral-800">
+                    <div className="absolute inset-0 z-0">
+                        <img src={Logo} alt="Background" className="w-full h-full object-contain opacity-20 scale-125 grayscale brightness-50" />
+                        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#050505]/80 to-[#050505]"/>
+                    </div>
 
-          {/* Center Brand Philosophy */}
-          <div className="relative z-10 my-auto py-8">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-xs text-neutral-300 mb-4">
-              <Sparkles className="w-3.5 h-3.5 text-amber-300"/>
-              <span>Enterprise Admin Suite</span>
-            </div>
-            <h2 className="text-2xl xl:text-3xl font-serif font-semibold text-white leading-tight">
-              Sovereign craft meets modern commerce.
-            </h2>
-            <p className="text-xs text-neutral-400 mt-3 leading-relaxed">
-              Unified operational control for catalog curation, bespoke inventory, multi-city logistics, and customer VIP management.
-            </p>
-          </div>
+                    {/* Top Branding */}
+                    <div className="relative z-10 flex items-center gap-4">
+                        <div className="w-12 h-12 flex items-center justify-center shrink-0">
+                            <img src={Logo} alt="Faisal Kamir" className="w-full h-full object-contain" />
+                        </div>
+                        <div>
+                            <h1 className="text-sm font-bold text-white tracking-[0.2em] uppercase font-serif">Faisal Kamir</h1>
+                            <p className="text-[9px] text-[#B08D57] font-medium tracking-widest uppercase">Fabrics & Cloth House</p>
+                        </div>
+                    </div>
 
-          {/* Bottom Live Metrics Pill */}
-          <div className="relative z-10 grid grid-cols-2 gap-3 pt-6 border-t border-neutral-800/80">
-            <div className="bg-neutral-900/80 backdrop-blur-md p-3 rounded-2xl border border-neutral-800/80">
-              <div className="flex items-center gap-1.5 text-[11px] text-neutral-400">
-                <TrendingUp className="w-3.5 h-3.5 text-emerald-400"/>
-                <span>Monthly Volume</span>
-              </div>
-              <p className="text-sm font-bold text-white mt-0.5">₨5,284,500</p>
+                    {/* Content */}
+                    <div className="relative z-10">
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] text-neutral-400 mb-4">
+                            <Sparkles className="w-3 h-3 text-[#B08D57]"/>
+                            <span>Enterprise Core v2.4</span>
+                        </div>
+                        <h2 className="text-3xl font-serif font-medium text-white leading-tight">Authentic Craft,<br/>Digital Precision.</h2>
+                        <p className="text-xs text-neutral-500 mt-4 leading-relaxed max-w-xs">
+                            Access the central control unit for inventory, artisan management, and luxury retail operations.
+                        </p>
+                    </div>
+
+                    {/* Metrics */}
+                    <div className="relative z-10 grid grid-cols-2 gap-4 pt-8 border-t border-white/5">
+                        <div className="space-y-1">
+                            <div className="flex items-center gap-1.5 text-[10px] text-neutral-500 uppercase tracking-tighter">
+                                <TrendingUp className="w-3 h-3 text-emerald-500"/> Revenue Stream
+                            </div>
+                            <p className="text-sm font-bold text-white tracking-tight">Active</p>
+                        </div>
+                        <div className="space-y-1">
+                            <div className="flex items-center gap-1.5 text-[10px] text-neutral-500 uppercase tracking-tighter">
+                                <Package className="w-3 h-3 text-[#B08D57]"/> Global Inventory
+                            </div>
+                            <p className="text-sm font-bold text-white tracking-tight">Synced</p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Right Section (Login Form) */}
+                <div className="lg:col-span-7 p-8 sm:p-12 xl:p-16 bg-[#0d0d0d] flex flex-col justify-center">
+                    
+                    {/* Mobile Logo View */}
+                    <div className="flex lg:hidden items-center justify-center gap-3 mb-10">
+                        <img src={Logo} alt="Logo" className="w-12 h-12 object-contain" />
+                        <div className="text-left">
+                            <h1 className="text-xs font-bold text-white tracking-widest uppercase">Faisal Kamir</h1>
+                            <p className="text-[9px] text-neutral-500 uppercase italic">Admin Portal</p>
+                        </div>
+                    </div>
+
+                    <div className="max-w-sm mx-auto w-full space-y-8">
+                        <div className="text-center lg:text-left space-y-2">
+                            <h2 className="text-2xl font-bold text-white tracking-tight font-serif italic">Administrator Login</h2>
+                            <p className="text-xs text-neutral-500">Provide your credentials to manage the couture house.</p>
+                        </div>
+
+                        {/* Quick Fill Box */}
+                        <div className="p-4 rounded-2xl bg-[#151515] border border-neutral-800 flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-[#B08D57]/10 rounded-xl text-[#B08D57]">
+                                    <KeyRound className="w-4 h-4"/>
+                                </div>
+                                <div className="text-[10px] text-neutral-400 font-mono">
+                                    <span className="text-white font-bold uppercase">apexiums</span> / <span className="text-white font-bold uppercase tracking-widest">apexiums1212</span>
+                                </div>
+                            </div>
+                            <button onClick={handleQuickFill} className="px-3 py-1.5 bg-white hover:bg-neutral-200 text-black rounded-lg text-[10px] font-black uppercase transition-all">Fill</button>
+                        </div>
+
+                        {error && (
+                            <div className="p-3.5 rounded-xl bg-rose-500/5 border border-rose-500/20 text-rose-400 text-[11px] flex items-center gap-2 animate-shake">
+                                <AlertCircle className="w-4 h-4 shrink-0" /> {error}
+                            </div>
+                        )}
+
+                        <form onSubmit={handleSubmit} className="space-y-5">
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest px-1">Username</label>
+                                <div className="relative">
+                                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-600" />
+                                    <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} className="w-full pl-10 pr-4 py-3 bg-[#050505] border border-neutral-800 rounded-xl text-xs text-white placeholder-neutral-700 outline-none focus:border-[#B08D57] transition-all" placeholder="Enter username" />
+                                </div>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest px-1">Password</label>
+                                <div className="relative">
+                                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-600" />
+                                    <input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} className="w-full pl-10 pr-12 py-3 bg-[#050505] border border-neutral-800 rounded-xl text-xs text-white placeholder-neutral-700 outline-none focus:border-[#B08D57] transition-all" placeholder="••••••••" />
+                                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-600 hover:text-white">
+                                        {showPassword ? <EyeOff className="w-4 h-4"/> : <Eye className="w-4 h-4"/>}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <button type="submit" disabled={isLoading} className="w-full py-3.5 bg-white hover:bg-[#f0f0f0] text-black rounded-xl text-xs font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 transition-all active:scale-[0.98]">
+                                {isLoading ? <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" /> : <>Access System <ArrowRight className="w-4 h-4"/></>}
+                            </button>
+                        </form>
+
+                        <div className="pt-6 border-t border-white/5 flex items-center justify-between text-[10px] text-neutral-600 font-medium">
+                            <div className="flex items-center gap-1.5"><ShieldCheck className="w-3 h-3" /> Secure Session</div>
+                            <div className="tracking-tighter uppercase">© 2026 Faisal Kamir</div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div className="bg-neutral-900/80 backdrop-blur-md p-3 rounded-2xl border border-neutral-800/80">
-              <div className="flex items-center gap-1.5 text-[11px] text-neutral-400">
-                <Package className="w-3.5 h-3.5 text-amber-400"/>
-                <span>Catalog Units</span>
-              </div>
-              <p className="text-sm font-bold text-white mt-0.5">1,248 Garments</p>
-            </div>
-          </div>
         </div>
-
-        {/* Right Authentication Form Section */}
-        <div className="lg:col-span-7 p-6 sm:p-10 xl:p-12 flex flex-col justify-between bg-neutral-900">
-          <div>
-            {/* Mobile Header */}
-            <div className="flex lg:hidden items-center gap-3 mb-6 pb-4 border-b border-neutral-800">
-              <div className="w-9 h-9 rounded-xl bg-white text-neutral-950 flex items-center justify-center font-serif font-black text-lg">
-                A
-              </div>
-              <div>
-                <h1 className="text-sm font-bold text-white tracking-widest uppercase font-serif">
-                  APEXIUMS
-                </h1>
-                <p className="text-[10px] text-neutral-400 uppercase">Management Portal</p>
-              </div>
-            </div>
-
-            {/* Portal Title & Subtitle */}
-            <div className="space-y-1">
-              <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight font-serif">
-                Sign In to Dashboard
-              </h2>
-              <p className="text-xs text-neutral-400">
-                Enter your authorized credentials to access the central management console.
-              </p>
-            </div>
-
-            {/* Quick Demo Credentials Autofill Banner */}
-            <div className="mt-5 p-3.5 rounded-2xl bg-neutral-800/60 border border-neutral-700/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-start gap-2.5">
-                <div className="p-2 rounded-xl bg-neutral-700/50 text-amber-400 shrink-0">
-                  <KeyRound className="w-4 h-4"/>
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-neutral-200">Required Credentials:</div>
-                  <div className="text-[11px] text-neutral-400 font-mono mt-0.5">
-                    User: <span className="text-white font-bold">apexiums</span> &bull; Pass: <span className="text-white font-bold">apexiums1212</span>
-                  </div>
-                </div>
-              </div>
-              <button type="button" onClick={handleQuickFill} className="px-3 py-1.5 bg-neutral-100 hover:bg-white text-neutral-950 rounded-xl text-xs font-bold transition-all shadow-xs shrink-0 flex items-center justify-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5 text-neutral-900"/>
-                <span>Auto-Fill</span>
-              </button>
-            </div>
-
-            {/* Error Message */}
-            {error && (<div className="mt-4 p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-start gap-2.5 animate-fadeIn">
-                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5"/>
-                <div>
-                  <p className="font-semibold text-rose-200">Access Denied</p>
-                  <p className="text-[11px] text-rose-300/90 mt-0.5">{error}</p>
-                </div>
-              </div>)}
-
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-              {/* Username field */}
-              <div>
-                <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
-                  Username
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-neutral-500">
-                    <User className="w-4 h-4"/>
-                  </div>
-                  <input type="text" required autoFocus value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Enter apexiums" className="w-full pl-10 pr-4 py-2.5 bg-neutral-950 border border-neutral-700/80 rounded-xl text-xs text-white placeholder-neutral-500 font-medium focus:outline-hidden focus:border-neutral-400 focus:ring-1 focus:ring-neutral-400 transition-all"/>
-                </div>
-              </div>
-
-              {/* Password field */}
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-xs font-semibold text-neutral-300">
-                    Password
-                  </label>
-                  <span className="text-[11px] text-neutral-500">apexiums1212</span>
-                </div>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-neutral-500">
-                    <Lock className="w-4 h-4"/>
-                  </div>
-                  <input type={showPassword ? 'text' : 'password'} required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter apexiums1212" className="w-full pl-10 pr-10 py-2.5 bg-neutral-950 border border-neutral-700/80 rounded-xl text-xs text-white placeholder-neutral-500 font-medium focus:outline-hidden focus:border-neutral-400 focus:ring-1 focus:ring-neutral-400 transition-all"/>
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-neutral-500 hover:text-neutral-300 transition-colors">
-                    {showPassword ? <EyeOff className="w-4 h-4"/> : <Eye className="w-4 h-4"/>}
-                  </button>
-                </div>
-              </div>
-
-              {/* Remember Me & Help */}
-              <div className="flex items-center justify-between text-xs pt-1">
-                <label className="flex items-center gap-2 cursor-pointer select-none text-neutral-400 hover:text-neutral-300">
-                  <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} className="rounded border-neutral-700 bg-neutral-950 text-neutral-100 focus:ring-neutral-400 focus:ring-offset-neutral-900"/>
-                  <span>Remember this workstation</span>
-                </label>
-                <span className="text-[11px] text-neutral-500">Super Admin Clearance</span>
-              </div>
-
-              {/* Submit Button */}
-              <button type="submit" disabled={isLoading} className="w-full py-3 px-4 mt-2 bg-white hover:bg-neutral-100 disabled:bg-neutral-300 text-neutral-950 rounded-xl text-xs font-bold transition-all shadow-lg flex items-center justify-center gap-2 group cursor-pointer">
-                {isLoading ? (<>
-                    <div className="w-4 h-4 border-2 border-neutral-900 border-t-transparent rounded-full animate-spin"/>
-                    <span>Verifying Credentials...</span>
-                  </>) : (<>
-                    <span>Enter Management Dashboard</span>
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform"/>
-                  </>)}
-              </button>
-            </form>
-          </div>
-
-          {/* Footer Security Badging */}
-          <div className="mt-8 pt-4 border-t border-neutral-800/80 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-neutral-500">
-            <div className="flex items-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-neutral-400"/>
-              <span>TLS 256-bit Encrypted Session</span>
-            </div>
-            <div>&copy; 2026 APEXIUMS COUTURE &bull; v2.4.0</div>
-          </div>
-        </div>
-      </div>
-    </div>);
+    );
 };
