@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Award, Truck, ShieldCheck, Headphones, ArrowRight } from 'lucide-react';
+import { Award, Truck, ShieldCheck, Headphones, ArrowRight, Loader2 } from 'lucide-react';
+
+// Components
 import Hero from '../components/Hero.jsx';
 import ProductGrid from '../components/ProductGrid.jsx';
 import CollectionCard from '../components/CollectionCard.jsx';
@@ -8,11 +10,11 @@ import FabricCard from '../components/FabricCard.jsx';
 import ReviewCard from '../components/ReviewCard.jsx';
 import Newsletter from '../components/Newsletter.jsx';
 import QuickViewModal from '../components/QuickViewModal.jsx';
-import { PRODUCTS, CATEGORIES } from '../data/products.js';
-import { COLLECTIONS, REVIEWS, FABRIC_GUIDE, INSTAGRAM_POSTS } from '../data/collections.js';
-import { categoryImage, shopImage } from '../data/images.js';
 
-const OCCASION_IMAGE_SLUGS = ['premium-blends', 'boski', 'boski', 'cotton', 'premium-blends', 'wash-and-wear'];
+// Store & Utils
+import { useProductStore } from '../store/useProductStore';
+import { categoryImage, shopImage } from '../data/images.js';
+import { REVIEWS, FABRIC_GUIDE, INSTAGRAM_POSTS } from '../data/collections.js'; // Static content kept as is
 
 const WHY_US = [
   { icon: Award, title: 'Premium Sourcing', desc: 'Fabric sourced from Pakistan\'s finest mills, chosen for hand-feel and finish.' },
@@ -23,12 +25,51 @@ const WHY_US = [
 
 export default function Home() {
   const [quickViewProduct, setQuickViewProduct] = useState(null);
+  const { 
+    products, 
+    categories, 
+    collections, 
+    fetchProducts, 
+    fetchCategories, 
+    fetchCollections, 
+    isLoading 
+  } = useProductStore();
+  
+  // Load Data from Backend on Mount
+  useEffect(() => {
+    fetchProducts();
+    fetchCategories();
+    fetchCollections();
+  }, [fetchProducts, fetchCategories, fetchCollections]);
+  
+  // Derived Data (Filtering logic using useMemo for performance)
+  const newArrivals = useMemo(() => 
+    products.filter((p) => p.badge === 'New').slice(0, 8), 
+  [products]);
 
-  const newArrivals = PRODUCTS.filter((p) => p.badge === 'New').concat(PRODUCTS.slice(0, 4)).slice(0, 8);
-  const bestSellers = PRODUCTS.filter((p) => p.badge === 'Best Seller').concat(PRODUCTS.slice(4, 8)).slice(0, 8);
-  const signatureProducts = PRODUCTS.filter((p) => p.badge === 'Signature');
-  const winterPicks = PRODUCTS.filter((p) => p.season === 'Winter').slice(0, 4);
-  const summerPicks = PRODUCTS.filter((p) => p.season === 'Summer').slice(0, 4);
+  const bestSellers = useMemo(() => 
+    products.filter((p) => p.badge === 'Best Seller').slice(0, 8), 
+  [products]);
+
+  const signatureProducts = useMemo(() => 
+    products.filter((p) => p.badge === 'Signature').slice(0, 4), 
+  [products]);
+
+  const winterPicks = useMemo(() => 
+    products.filter((p) => p.season === 'Winter').slice(0, 4), 
+  [products]);
+
+  const summerPicks = useMemo(() => 
+    products.filter((p) => p.season === 'Summer').slice(0, 4), 
+  [products]);
+
+  if (isLoading && products.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="animate-spin text-gold" size={40} />
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -56,11 +97,11 @@ export default function Home() {
             <h2 className="section-title">Shop by Category</h2>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {CATEGORIES.map((c) => (
+            {categories.map((c) => (
               <Link key={c.slug} to={`/shop/${c.slug}`} className="group text-center">
                 <div className="aspect-square overflow-hidden bg-stone/10 mb-3">
                   <img
-                    src={categoryImage(c.slug, 400, 400)}
+                    src={c.image?.url || categoryImage(c.slug, 400, 400)}
                     alt={c.name}
                     loading="lazy"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
@@ -87,7 +128,7 @@ export default function Home() {
         <ProductGrid products={bestSellers} onQuickView={setQuickViewProduct} />
       </section>
 
-      {/* Featured Collections */}
+      {/* Featured Collections from Backend */}
       <section className="bg-white py-16 sm:py-20">
         <div className="container-fk">
           <div className="text-center mb-10">
@@ -95,37 +136,10 @@ export default function Home() {
             <h2 className="section-title">Our Collections</h2>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {COLLECTIONS.map((c) => (
-              <CollectionCard key={c.id} collection={c} />
+            {collections.map((c) => (
+              <CollectionCard key={c._id || c.id} collection={c} />
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* Shop by Occasion */}
-      <section className="container-fk py-16 sm:py-20">
-        <div className="text-center mb-10">
-          <p className="eyebrow mb-2">Dress the Moment</p>
-          <h2 className="section-title">Shop by Occasion</h2>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-          {['Office', 'Wedding', 'Eid', 'Everyday', 'Festive', 'Casual Friday'].map((occ, i) => (
-            <Link
-              key={occ}
-              to={`/shop?occasion=${encodeURIComponent(occ)}`}
-              className="relative aspect-[16/10] overflow-hidden group"
-            >
-              <img
-                src={categoryImage(OCCASION_IMAGE_SLUGS[i], 600, 400)}
-                alt={occ}
-                loading="lazy"
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-              />
-              <div className="absolute inset-0 bg-charcoal/50 group-hover:bg-charcoal/60 transition-colors flex items-center justify-center">
-                <span className="text-ivory font-display text-xl sm:text-2xl">{occ}</span>
-              </div>
-            </Link>
-          ))}
         </div>
       </section>
 
@@ -149,14 +163,14 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Fabric Education */}
+      {/* Fabric Education (Static) */}
       <section className="container-fk py-16 sm:py-20">
         <div className="text-center mb-10 max-w-2xl mx-auto">
           <p className="eyebrow mb-2">Know Your Fabric</p>
           <h2 className="section-title mb-3">Understanding Our Weaves</h2>
           <p className="text-stone text-sm leading-relaxed">
             Every fabric behaves differently against the skin and under a tailor's needle.
-            Here's a quick guide to what makes each of our six fabric families unique.
+            Here's a quick guide to what makes each of our fabric families unique.
           </p>
         </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -166,7 +180,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Signature Collection */}
+      {/* Signature Collection (Dynamic) */}
       <section className="bg-charcoal text-ivory py-16 sm:py-20">
         <div className="container-fk">
           <div className="text-center mb-10 max-w-xl mx-auto">
@@ -179,9 +193,9 @@ export default function Home() {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-8 sm:gap-x-6">
             {signatureProducts.map((p) => (
-              <div key={p.id} className="group">
-                <Link to={`/product/${p.id}`} className="block aspect-[3/4] overflow-hidden bg-ivory/10 mb-3">
-                  <img src={p.images[0]} alt={p.name} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+              <div key={p._id || p.id} className="group">
+                <Link to={`/product/${p._id || p.id}`} className="block aspect-[3/4] overflow-hidden bg-ivory/10 mb-3">
+                  <img src={p.images?.[0]} alt={p.name} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                 </Link>
                 <h3 className="text-sm text-ivory">{p.name}</h3>
                 <p className="text-sm text-gold mt-1">Rs. {p.price.toLocaleString()}</p>
@@ -225,22 +239,14 @@ export default function Home() {
       <section className="container-fk py-16 sm:py-20">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           <div className="aspect-[4/3] overflow-hidden">
-            <img src={shopImage(800, 600)} alt="Faisal Kamir fabric shelves — rolls of unstitched fabric ready for tailoring" className="w-full h-full object-cover" />
+            <img src={shopImage(800, 600)} alt="Faisal Kamir Store" className="w-full h-full object-cover" />
           </div>
           <div>
             <p className="eyebrow mb-2">Our Story</p>
             <h2 className="section-title mb-5">Built on Faisalabad's Weaving Heritage</h2>
             <p className="text-stone text-sm leading-relaxed mb-4">
-              Faisal Kamir began in Faisalabad — the heart of Pakistan's textile industry —
-              with a simple belief: unstitched fabric deserves the same care as a finished
-              garment. We work directly with mills across Punjab to source cotton, khaddar,
-              boski and premium blends that hold their shape, their colour and their character
-              long after the first wash.
-            </p>
-            <p className="text-stone text-sm leading-relaxed mb-6">
-              Today, every metre we sell is chosen with a tailor's eye — for drape, for
-              hand-feel, and for how it will look stitched into a shalwar kameez, kurta or
-              waistcoat.
+              Faisal Kamir began in Faisalabad — the heart of Pakistan's textile industry.
+              Today, every metre we sell is chosen with a tailor's eye.
             </p>
             <Link to="/about" className="btn-outline inline-flex">Read Our Story</Link>
           </div>
@@ -258,7 +264,7 @@ export default function Home() {
         <div className="grid grid-cols-3 md:grid-cols-6 gap-2 sm:gap-3">
           {INSTAGRAM_POSTS.map((post) => (
             <a key={post.id} href="#" className="aspect-square overflow-hidden block group">
-              <img src={post.image} alt="Faisal Kamir on Instagram" loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+              <img src={post.image} alt="Instagram Post" loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
             </a>
           ))}
         </div>

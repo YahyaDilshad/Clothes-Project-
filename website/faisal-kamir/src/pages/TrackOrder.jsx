@@ -1,21 +1,23 @@
 import { useState } from 'react';
-import { Search, PackageSearch } from 'lucide-react';
+import { Search, PackageSearch, Loader2 } from 'lucide-react';
 import OrderTimeline from '../components/OrderTimeline.jsx';
-import useLocalStorage from '../hooks/useLocalStorage.js';
+import { useProductStore } from '../store/useProductStore';
 
 const STEP_INDEX = { placed: 0, processing: 1, shipped: 2, delivered: 3 };
 
 export default function TrackOrder() {
-  const [orders] = useLocalStorage('fk_orders', []);
+  const { fetchOrderById, isLoading } = useProductStore();
   const [query, setQuery] = useState('');
   const [result, setResult] = useState(null);
   const [searched, setSearched] = useState(false);
 
-  const onSubmit = (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault();
+    if (!query.trim()) return;
+    
     setSearched(true);
-    const found = orders.find((o) => o.id.toLowerCase() === query.trim().toLowerCase());
-    setResult(found || null);
+    const order = await fetchOrderById(query.trim()); // Backend call
+    setResult(order || null);
   };
 
   return (
@@ -23,7 +25,6 @@ export default function TrackOrder() {
       <div className="text-center mb-10">
         <p className="eyebrow mb-2">Order Status</p>
         <h1 className="font-display text-4xl text-charcoal">Track Your Order</h1>
-        <p className="text-stone text-sm mt-3">Enter the order ID sent to you at checkout to view its status.</p>
       </div>
 
       <form onSubmit={onSubmit} className="flex gap-3">
@@ -36,14 +37,16 @@ export default function TrackOrder() {
             className="input-fk pl-11"
           />
         </div>
-        <button type="submit" className="btn-primary shrink-0">Track</button>
+        <button type="submit" disabled={isLoading} className="btn-primary shrink-0 flex items-center gap-2">
+          {isLoading && <Loader2 size={16} className="animate-spin" />}
+          Track
+        </button>
       </form>
 
-      {searched && !result && (
+      {searched && !result && !isLoading && (
         <div className="flex flex-col items-center text-center py-16">
           <PackageSearch size={36} className="text-stone/40 mb-4" />
           <p className="text-charcoal font-medium mb-1">No order found</p>
-          <p className="text-sm text-stone">Double-check the order ID and try again, or contact support.</p>
         </div>
       )}
 
@@ -52,7 +55,7 @@ export default function TrackOrder() {
           <div className="flex items-center justify-between mb-8">
             <div>
               <p className="text-xs text-stone">Order ID</p>
-              <p className="font-medium text-charcoal">{result.id}</p>
+              <p className="font-medium text-charcoal">{result._id || result.id}</p>
             </div>
             <div className="text-right">
               <p className="text-xs text-stone">Placed On</p>
@@ -60,13 +63,13 @@ export default function TrackOrder() {
             </div>
           </div>
           <OrderTimeline currentStep={STEP_INDEX[result.status] ?? 0} />
-
+          
           <div className="mt-12 bg-white border border-charcoal/10 divide-y divide-charcoal/10">
-            {result.items.map((item) => (
-              <div key={`${item.id}-${item.color}`} className="flex gap-4 p-4">
-                <img src={item.image} alt={item.name} className="w-14 h-18 object-cover" />
+            {result.items?.map((item) => (
+              <div key={item._id} className="flex gap-4 p-4">
+                <img src={item.image || item.product?.images[0]} alt={item.name} className="w-14 h-18 object-cover" />
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-charcoal">{item.name}</p>
+                  <p className="text-sm font-medium text-charcoal">{item.name || item.product?.name}</p>
                   <p className="text-xs text-stone mt-0.5">{item.color} × {item.qty}</p>
                 </div>
                 <p className="text-sm font-medium text-charcoal">Rs. {(item.price * item.qty).toLocaleString()}</p>

@@ -11,7 +11,7 @@ const upload = require('../middleware/upload');
 const router = express.Router();
 
 // Sabhi logged in users dekh sakte hain
-router.get('/', protect, getCollections);
+router.get('/', getCollections);
 
 // Sirf Administrator, Manager ya Staff hi add, update, delete kar sakte hain
 router.post(

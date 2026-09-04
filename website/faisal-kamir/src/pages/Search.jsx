@@ -1,58 +1,78 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import SearchBar from '../components/SearchBar.jsx';
+import { useState, useEffect } from 'react';
+import { useParams, Link, Navigate } from 'react-router-dom';
+import { ChevronRight, Ruler, Check, Loader2 } from 'lucide-react';
+import ProductGallery from '../components/ProductGallery.jsx';
+import ProductInfo from '../components/ProductInfo.jsx';
 import ProductGrid from '../components/ProductGrid.jsx';
+import ReviewCard from '../components/ReviewCard.jsx';
 import QuickViewModal from '../components/QuickViewModal.jsx';
-import { PRODUCTS } from '../data/products.js';
+import { useProductStore } from '../store/useProductStore.js';
 
-export default function Search() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const initialQ = searchParams.get('q') || '';
-  const [query, setQuery] = useState(initialQ);
+const TABS = ['Description', 'Care Instructions', 'Reviews'];
+
+export default function ProductDetail() {
+  const { id } = useParams();
+  const { products, categories, fetchProducts, isLoading } = useProductStore();
+  const [tab, setTab] = useState('Description');
   const [quickViewProduct, setQuickViewProduct] = useState(null);
 
   useEffect(() => {
-    const t = setTimeout(() => {
-      if (query) setSearchParams({ q: query });
-      else setSearchParams({});
-    }, 250);
-    return () => clearTimeout(t);
-  }, [query, setSearchParams]);
+    if (products.length === 0) fetchProducts();
+  }, []);
 
-  const results = useMemo(() => {
-    if (!query.trim()) return [];
-    const q = query.trim().toLowerCase();
-    return PRODUCTS.filter((p) =>
-      [p.name, p.fabric, p.color, p.occasion, p.season, p.category]
-        .join(' ')
-        .toLowerCase()
-        .includes(q)
-    );
-  }, [query]);
+  // Backend se id handle karna (kuch DBs mein _id hota hai)
+  const product = products.find(p => p._id === id || p.id === id);
+
+  if (isLoading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-gold" /></div>;
+  if (!product && !isLoading) return <Navigate to="/shop" replace />;
+
+  const category = categories.find((c) => c.slug === product.category);
+  const related = products.filter(p => p.category === product.category && p._id !== product._id).slice(0, 4);
 
   return (
-    <div className="container-fk py-12 sm:py-16">
-      <div className="max-w-xl mx-auto text-center mb-10">
-        <p className="eyebrow mb-2">Find Your Fabric</p>
-        <h1 className="font-display text-4xl text-charcoal mb-6">Search</h1>
-        <SearchBar value={query} onChange={setQuery} autoFocus />
+    <div className="container-fk py-8 sm:py-12">
+      {/* ... (Breadcrumbs same raheinge, product variables handle karein) ... */}
+      <div className="grid lg:grid-cols-2 gap-10 lg:gap-16">
+        <ProductGallery images={product.images} name={product.name} />
+        <ProductInfo product={product} />
       </div>
 
-      {query.trim() ? (
-        <>
-          <p className="text-sm text-stone mb-6">
-            {results.length} result{results.length !== 1 ? 's' : ''} for "{query}"
-          </p>
-          <ProductGrid products={results} onQuickView={setQuickViewProduct} />
-        </>
-      ) : (
-        <div className="text-center py-16">
-          <p className="text-stone text-sm">
-            Try searching by fabric type, colour, or occasion — e.g. "khaddar", "navy", "wedding".
+      {/* Fabric Close-up with API data */}
+      <section className="mt-20 grid sm:grid-cols-2 gap-8 items-center bg-white border border-charcoal/10 p-6 sm:p-10">
+        <div className="aspect-square overflow-hidden">
+          <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
+        </div>
+        <div>
+          <p className="eyebrow mb-2">Fabric Close-Up</p>
+          <h2 className="font-display text-2xl sm:text-3xl text-charcoal mb-4">Weave & Texture</h2>
+          <p className="text-sm text-stone leading-relaxed mb-5">
+            Quality {product.fabric} fabric in {product.color} color. Best for {product.occasion}.
           </p>
         </div>
-      )}
+      </section>
 
+      {/* Tabs Logic */}
+      <section className="mt-16">
+        {/* ... (Tabs UI same rahega) ... */}
+        <div className="py-8 max-w-2xl">
+          {tab === 'Description' && <p className="text-sm text-stone">{product.description}</p>}
+          {tab === 'Care Instructions' && (
+             <ul className="space-y-2.5 text-sm text-stone">
+               {product.care?.map((c, i) => (
+                 <li key={i} className="flex items-center gap-2"><Check size={15} className="text-gold" /> {c}</li>
+               ))}
+             </ul>
+          )}
+        </div>
+      </section>
+
+      {/* Related Products Section */}
+      {related.length > 0 && (
+        <section className="mt-20">
+          <h2 className="section-title text-center mb-8">Related Fabrics</h2>
+          <ProductGrid products={related} onQuickView={setQuickViewProduct} />
+        </section>
+      )}
       <QuickViewModal product={quickViewProduct} onClose={() => setQuickViewProduct(null)} />
     </div>
   );

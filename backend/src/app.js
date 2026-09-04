@@ -14,7 +14,9 @@
   app.use(helmet());
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:5173', // Apna frontend URL dein
+    origin: [process.env.CLIENT_URL , 
+      process.env.CLIENT_URL_2 
+    ], // Apna frontend URL dein
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'], // Yeh line lazmi add karein
