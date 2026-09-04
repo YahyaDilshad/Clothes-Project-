@@ -1,11 +1,18 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useApp } from '../../context/AppContext';
+import { useAuthStore } from '../../store/authStore.js'; // Path check karein
+
 export const ProtectedRoute = ({ children }) => {
-    const { isAuthenticated } = useApp();
+    const { isAuthenticated, token } = useAuthStore();
     const location = useLocation();
-    if (!isAuthenticated) {
-        return <Navigate to="/login" state={{ from: location }} replace/>;
+
+    // LocalStorage se bhi check karein taake refresh par masla na ho
+    const hasToken = token || localStorage.getItem('token');
+
+    if (!isAuthenticated && !hasToken) {
+        // Agar user login nahi hai, to use login page par bhejein
+        return <Navigate to="/login" state={{ from: location }} replace />;
     }
-    return <>{children}</>;
+
+    return children;
 };

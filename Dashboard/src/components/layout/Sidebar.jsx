@@ -17,33 +17,50 @@ import {
     LogOut, 
     ChevronLeft, 
     ChevronRight, 
-    Sparkles, 
-    LucideListOrdered
+    LucideListOrdered,
+    BadgePercent
 } from 'lucide-react';
+
+// STORES
 import { useApp } from '../../context/AppContext';
+import { useAuthStore } from '../../store/authStore.js'; // Auth Store Import karein
+
+// COMPONENTS & UTILS
 import { ConfirmDialog } from '../common/ConfirmDialog';
 import { cn } from '../../utils/cn';
-// Aap apna logo image path yahan import karein
 import Logo from '../../../assets/logo.png'; 
 
 export const Sidebar = () => {
-    const { sidebarCollapsed, setSidebarCollapsed, mobileMenuOpen, setMobileMenuOpen, currentUser, inventory, returns, logout } = useApp();
+    // 1. UI context se lein
+    const { 
+        sidebarCollapsed, 
+        setSidebarCollapsed, 
+        mobileMenuOpen, 
+        setMobileMenuOpen, 
+        inventory, 
+        returns 
+    } = useApp();
+
+    // 2. Auth Actions Zustand se lein
+    const { logout } = useAuthStore();
+    
     const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
     const navigate = useNavigate();
 
-    // Badges calculation
-    const lowStockCount = inventory.filter((i) => i.status === 'Low Stock' || i.status === 'Out of Stock').length;
-    const pendingReturnsCount = returns.filter((r) => r.status === 'Requested').length;
+    // Badges calculation (Safety check ke sath)
+    const lowStockCount = inventory?.filter((i) => i.status === 'Low Stock' || i.status === 'Out of Stock').length || 0;
+    const pendingReturnsCount = returns?.filter((r) => r.status === 'Requested').length || 0;
 
     const navItems = [
         { label: 'Dashboard', path: '/', icon: LayoutDashboard },
         { label: 'Orders', path: '/orders', icon: LucideListOrdered },
         { label: 'Billing', path: '/billing', icon: CreditCard },
+        { label: 'Sales', path: '/sales', icon: BadgePercent },
         { label: 'Categories', path: '/categories', icon: Grid },
         { label: 'Collections', path: '/collections', icon: Layers },
         { label: 'Products', path: '/products', icon: Package },
-        { label: 'Stocks', path: '/stocks', icon: Boxes, badge: lowStockCount ? lowStockCount : undefined, badgeColor: 'bg-[#B94A48]/20 text-[#B94A48]' },
-        { label: 'Returns', path: '/returns', icon: RotateCcw, badge: pendingReturnsCount ? pendingReturnsCount : undefined, badgeColor: 'bg-[#64748B]/20 text-[#64748B]' },
+        { label: 'Stocks', path: '/stocks', icon: Boxes, badge: lowStockCount || undefined, badgeColor: 'bg-[#B94A48]/20 text-[#B94A48]' },
+        { label: 'Returns', path: '/returns', icon: RotateCcw, badge: pendingReturnsCount || undefined, badgeColor: 'bg-[#64748B]/20 text-[#64748B]' },
         { label: 'Exchange', path: '/exchange', icon: RefreshCw },
         { label: 'Staff', path: '/staff', icon: Users },
         { label: 'Permissions', path: '/permissions', icon: ShieldCheck },
@@ -53,33 +70,37 @@ export const Sidebar = () => {
     ];
 
     const handleLogout = () => {
-        logout();
+        logout(); // Zustand state clear karega + localStorage delete karega
         setLogoutDialogOpen(false);
-        navigate('/login');
+        navigate('/login', { replace: true }); // Redirect to login
     };
 
     return (
         <>
             {/* Mobile Backdrop */}
             {mobileMenuOpen && (
-                <div className="fixed inset-0 bg-[#181818]/60 backdrop-blur-xs z-40 lg:hidden" onClick={() => setMobileMenuOpen(false)} />
+                <div className="fixed inset-0 bg-[#181818]/60 backdrop-blur-sm z-40 lg:hidden" onClick={() => setMobileMenuOpen(false)} />
             )}
 
-            <aside className={cn('fixed top-0 left-0 bottom-0 z-40 bg-[#181818] text-[#9A9A9A] flex flex-col border-r border-[#282828] transition-all duration-300 ease-in-out', sidebarCollapsed ? 'w-20' : 'w-64', mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0')}>
+            <aside className={cn(
+                'fixed top-0 left-0 bottom-0 z-40 bg-[#181818] text-[#9A9A9A] flex flex-col border-r border-[#282828] transition-all duration-300 ease-in-out', 
+                sidebarCollapsed ? 'w-20' : 'w-64', 
+                mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+            )}>
                 
-                {/* Brand Header with Logo */}
-                <div className="h-20 flex items-center justify-between px-4 border-b border-[#282828]">
+                {/* Brand Header */}
+                <div className="h-24 flex items-center justify-between px-4 border-b border-[#282828]">
                     <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-10 h-10 flex items-center justify-center shrink-0 overflow-hidden">
+                        <div className={cn("flex items-center justify-center shrink-0 overflow-hidden transition-all bg-white/5 rounded-xl p-1", sidebarCollapsed ? "w-12 h-12" : "w-16 h-16")}>
                             <img src={Logo} alt="Faisal Kamir Logo" className="w-full h-full object-contain" />
                         </div>
                         {!sidebarCollapsed && (
                             <div className="min-w-0">
-                                <h1 className="text-xs font-bold text-white tracking-widest uppercase font-serif truncate">
+                                <h1 className="text-[11px] font-bold text-white tracking-widest uppercase font-serif truncate">
                                     Faisal Kamir
                                 </h1>
-                                <p className="text-[10px] text-[#B08D57] tracking-wider uppercase truncate">
-                                    Admin Panel
+                                <p className="text-[9px] text-[#B08D57] tracking-tighter uppercase truncate font-medium">
+                                    Fabrics & Cloth House
                                 </p>
                             </div>
                         )}
@@ -91,10 +112,10 @@ export const Sidebar = () => {
                 </div>
 
                 {/* Navigation list */}
-                <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1 custom-scrollbar">
+                <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1 custom-scrollbar scrollbar-hide">
                     {!sidebarCollapsed && (
                         <div className="text-[10px] font-bold uppercase tracking-wider text-[#6B6B6B] px-3 pb-1.5">
-                            Store Management
+                            Management Menu
                         </div>
                     )}
 
@@ -105,9 +126,10 @@ export const Sidebar = () => {
                                 key={item.path}
                                 to={item.path}
                                 onClick={() => setMobileMenuOpen(false)}
-                                className={({ isActive }) => cn('flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-all group relative', isActive
-                                    ? 'bg-[#242424] text-white font-semibold'
-                                    : 'text-[#9A9A9A] hover:text-white hover:bg-[#242424]/60')}
+                                className={({ isActive }) => cn(
+                                    'flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-all group relative', 
+                                    isActive ? 'bg-[#242424] text-white font-semibold' : 'text-[#9A9A9A] hover:text-white hover:bg-[#242424]/60'
+                                )}
                                 title={sidebarCollapsed ? item.label : undefined}
                             >
                                 {({ isActive }) => (
@@ -128,18 +150,7 @@ export const Sidebar = () => {
                     })}
                 </div>
 
-                {/* Live Storefront Status Pill */}
-                {!sidebarCollapsed && (
-                    <div className="p-3 mx-3 mb-4 rounded-xl bg-[#222222]/80 border border-[#2e2e2e]">
-                        <div className="flex items-center gap-2 text-xs font-medium text-neutral-200">
-                            <Sparkles className="w-3.5 h-3.5 text-[#B08D57] shrink-0" />
-                            <span className="font-semibold text-xs text-white">Online Store</span>
-                        </div>
-                        <p className="text-[10px] text-[#9A9A9A] mt-0.5">Live &bull; PKR Currency</p>
-                    </div>
-                )}
-
-                {/* Clean Logout Footer (Profile Removed) */}
+                {/* Logout Footer */}
                 <div className="p-4 border-t border-[#282828] bg-[#141414]">
                     <button 
                         type="button" 
@@ -148,7 +159,7 @@ export const Sidebar = () => {
                             "flex items-center gap-3 w-full px-3 py-2 rounded-lg transition-all text-[#9A9A9A] hover:text-[#B94A48] hover:bg-[#B94A48]/10 cursor-pointer",
                             sidebarCollapsed && "justify-center px-0"
                         )}
-                        title="Logout"
+                        title="Logout Session"
                     >
                         <LogOut className="w-4 h-4" />
                         {!sidebarCollapsed && <span className="text-xs font-semibold">Logout Session</span>}
@@ -161,7 +172,7 @@ export const Sidebar = () => {
                 onClose={() => setLogoutDialogOpen(false)} 
                 onConfirm={handleLogout} 
                 title="Log Out" 
-                message={`Are you sure you want to log out of the admin panel?`} 
+                message="Are you sure you want to end your active session? Unsaved changes may be lost." 
                 confirmText="Log Out" 
                 cancelText="Cancel" 
                 type="warning" 
@@ -169,3 +180,6 @@ export const Sidebar = () => {
         </>
     );
 };
+
+// Error se bachne ke liye default export bhi add kar diya hai
+export default Sidebar;

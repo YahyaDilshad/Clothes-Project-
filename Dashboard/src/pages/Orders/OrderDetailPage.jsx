@@ -1,423 +1,456 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Printer, Truck, CheckCircle2, User, MapPin, CreditCard, FileText, Send, Phone, Mail, } from 'lucide-react';
-import { useApp } from '../../context/AppContext';
+import { 
+    ArrowLeft, Printer, Truck, CheckCircle2, User, 
+    MapPin, CreditCard, FileText, Send, Phone, Mail, Loader2, X
+} from 'lucide-react';
+import { useProductStore } from '../../store/UseProductsStore.js';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { Modal } from '../../components/common/Modal';
 import { formatPKR, formatDate } from '../../utils/formatters';
+import { cn } from '../../utils/cn';
+
 export const OrderDetailPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { orders, updateOrderStatus, updatePaymentStatus, addOrderNote } = useApp();
+
+    // Zustand Store Integration
+    const { 
+        orders, 
+        updateOrderStatus, 
+        updatePaymentStatus, 
+        addOrderNote, 
+        isLoading,
+        fetchOrders // To ensure data is fresh if user lands directly on this page
+    } = useProductStore();
+
     const order = orders.find((o) => o.id === id);
+
+    // Local States
     const [newNote, setNewNote] = useState('');
     const [trackingModalOpen, setTrackingModalOpen] = useState(false);
-    const [trackingNumberInput, setTrackingNumberInput] = useState(order?.trackingNumber || '');
+    const [trackingNumberInput, setTrackingNumberInput] = useState('');
     const [invoiceModalOpen, setInvoiceModalOpen] = useState(false);
-    if (!order) {
-        return (<div className="text-center py-20 bg-white rounded-2xl border border-neutral-200">
-        <h2 className="text-lg font-bold text-neutral-900">Order Not Found</h2>
-        <button onClick={() => navigate('/orders')} className="mt-3 px-4 py-2 bg-neutral-900 text-white rounded-xl text-xs font-semibold">
-          Return to Orders
-        </button>
-      </div>);
+
+    useEffect(() => {
+        if (orders.length === 0) {
+            fetchOrders();
+        }
+    }, []);
+
+    useEffect(() => {
+        if (order) {
+            setTrackingNumberInput(order.trackingNumber || '');
+        }
+    }, [order]);
+
+    if (!order && isLoading) {
+        return (
+            <div className="h-[60vh] flex flex-col items-center justify-center">
+                <Loader2 className="w-8 h-8 animate-spin text-[#B08D57] mb-2" />
+                <p className="text-xs font-bold uppercase tracking-widest text-neutral-400">Fetching Order Details...</p>
+            </div>
+        );
     }
+
+    if (!order) {
+        return (
+            <div className="text-center py-20 bg-white rounded-2xl border border-neutral-200 shadow-sm max-w-xl mx-auto mt-10">
+                <FileText className="w-12 h-12 text-neutral-200 mx-auto mb-4" />
+                <h2 className="text-lg font-bold text-neutral-900">Order Not Found</h2>
+                <p className="text-xs text-neutral-500 mt-1 mb-6">The order reference you are looking for does not exist.</p>
+                <button onClick={() => navigate('/orders')} className="px-5 py-2.5 bg-neutral-900 text-white rounded-xl text-xs font-bold shadow-lg">
+                    Return to Orders Ledger
+                </button>
+            </div>
+        );
+    }
+
     const timelineSteps = ['Pending', 'Confirmed', 'Processing', 'Shipped', 'Delivered'];
     const currentStepIndex = timelineSteps.indexOf(order.status);
-    const handleAddNote = (e) => {
+
+    const handleAddNote = async (e) => {
         e.preventDefault();
-        if (!newNote.trim())
-            return;
-        addOrderNote(order.id, newNote.trim());
+        if (!newNote.trim()) return;
+        await addOrderNote(order.id, newNote.trim());
         setNewNote('');
     };
+
+    const handleUpdateTracking = async () => {
+        // Logic: Add tracking and move to 'Shipped' if it's in early stages
+        await updateOrderStatus(order.id, order.status === 'Processing' ? 'Shipped' : order.status);
+        // Tracking update logic would normally be its own API call
+        // Assuming updateOrderStatus handles tracking in your backend too
+        setTrackingModalOpen(false);
+    };
+
     const handlePrint = () => {
         window.print();
     };
-    return (<div className="space-y-6 max-w-5xl mx-auto pb-12">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/orders')} className="p-2 rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-600 transition-colors">
-            <ArrowLeft className="w-4 h-4"/>
-          </button>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-xl font-bold text-neutral-900 font-mono tracking-tight">
-                {order.orderNumber}
-              </h2>
-              <StatusBadge status={order.status} size="sm"/>
-              <StatusBadge status={order.paymentStatus} size="sm"/>
-            </div>
-            <p className="text-xs text-neutral-500 mt-0.5">
-              Placed on {formatDate(order.date)} • Payment via <span className="font-semibold text-neutral-800">{order.paymentMethod}</span>
-            </p>
-          </div>
-        </div>
 
-        <div className="flex items-center gap-2">
-          <button type="button" onClick={() => setInvoiceModalOpen(true)} className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-neutral-50 border border-neutral-200 text-neutral-700 rounded-xl text-xs font-semibold shadow-2xs transition-colors">
-            <Printer className="w-3.5 h-3.5"/>
-            <span>Print Invoice</span>
-          </button>
-
-          <button type="button" onClick={() => setTrackingModalOpen(true)} className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-neutral-50 border border-neutral-200 text-neutral-700 rounded-xl text-xs font-semibold shadow-2xs transition-colors">
-            <Truck className="w-3.5 h-3.5"/>
-            <span>{order.trackingNumber ? 'Update Tracking' : 'Add Tracking'}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Order Status Stepper Card */}
-      {order.status !== 'Cancelled' && (<div className="bg-white p-5 sm:p-6 rounded-2xl border border-neutral-200/80 shadow-2xs">
-          <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-6">
-            Fulfillment Progress
-          </h3>
-          <div className="relative flex flex-col sm:flex-row items-center justify-between gap-4">
-            {/* Progress line */}
-            <div className="hidden sm:block absolute top-1/2 left-6 right-6 h-0.5 bg-neutral-200 -translate-y-1/2 z-0"/>
-
-            {timelineSteps.map((step, idx) => {
-                const isCompleted = idx <= currentStepIndex;
-                const isCurrent = idx === currentStepIndex;
-                return (<div key={step} onClick={() => updateOrderStatus(order.id, step)} className="relative z-10 flex sm:flex-col items-center gap-3 sm:gap-2 cursor-pointer group">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all ${isCurrent
-                        ? 'bg-neutral-900 text-white ring-4 ring-neutral-200'
-                        : isCompleted
-                            ? 'bg-neutral-900 text-white'
-                            : 'bg-neutral-100 text-neutral-400 border border-neutral-200'}`}>
-                    {isCompleted ? <CheckCircle2 className="w-4 h-4"/> : idx + 1}
-                  </div>
-                  <div className="text-left sm:text-center">
-                    <span className={`text-xs font-bold block ${isCompleted ? 'text-neutral-900' : 'text-neutral-400'}`}>
-                      {step}
-                    </span>
-                    {isCurrent && (<span className="text-[10px] text-neutral-500 font-medium">Active Stage</span>)}
-                  </div>
-                </div>);
-            })}
-          </div>
-
-          {order.trackingNumber && (<div className="mt-6 pt-4 border-t border-neutral-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs bg-neutral-50 p-3 rounded-xl">
-              <div className="flex items-center gap-2">
-                <Truck className="w-4 h-4 text-neutral-700"/>
-                <span className="text-neutral-500">Tracking Code (Leopards / TCS):</span>
-                <span className="font-mono font-bold text-neutral-900">{order.trackingNumber}</span>
-              </div>
-              <span className="text-emerald-700 font-semibold">Courier Dispatched</span>
-            </div>)}
-        </div>)}
-
-      {/* Main Grid: Items on Left, Customer/Financials on Right */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: Items List */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Items Card */}
-          <div className="bg-white rounded-2xl border border-neutral-200/80 shadow-2xs overflow-hidden">
-            <div className="p-5 border-b border-neutral-100 flex items-center justify-between">
-              <h3 className="text-sm font-bold text-neutral-900 uppercase tracking-wider">
-                Order Items ({order.items.reduce((acc, i) => acc + i.quantity, 0)})
-              </h3>
-              <span className="text-xs text-neutral-500 font-medium">{order.items.length} unique products</span>
-            </div>
-
-            <div className="divide-y divide-neutral-100">
-              {order.items.map((item, idx) => (<div key={idx} className="p-4 flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <img src={item.productImage} alt={item.productName} className="w-14 h-14 rounded-xl object-cover border border-neutral-200 shrink-0"/>
-                    <div className="min-w-0">
-                      <h4 className="font-bold text-neutral-900 text-xs truncate">
-                        {item.productName}
-                      </h4>
-                      <p className="text-[11px] text-neutral-400 font-mono mt-0.5">
-                        SKU: {item.sku}
-                      </p>
-                      <div className="flex items-center gap-2 mt-1 text-[11px]">
-                        <span className="bg-neutral-100 text-neutral-700 px-2 py-0.5 rounded font-semibold">
-                          Size: {item.size}
-                        </span>
-                        <span className="bg-neutral-100 text-neutral-700 px-2 py-0.5 rounded font-semibold">
-                          Color: {item.color}
-                        </span>
-                      </div>
+    return (
+        <div className="space-y-6 max-w-5xl mx-auto pb-12">
+            {/* Header Area */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                    <button onClick={() => navigate('/orders')} className="p-2 rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-600 transition-colors">
+                        <ArrowLeft className="w-4 h-4"/>
+                    </button>
+                    <div>
+                        <div className="flex items-center gap-2">
+                            <h2 className="text-xl font-bold text-neutral-900 font-mono tracking-tight">{order.orderNumber}</h2>
+                            <StatusBadge status={order.status} size="sm"/>
+                            <StatusBadge status={order.paymentStatus} size="sm"/>
+                        </div>
+                        <p className="text-xs text-neutral-500 mt-0.5">
+                            Placed on {formatDate(order.date)} • Payment via <span className="font-semibold text-neutral-800">{order.paymentMethod}</span>
+                        </p>
                     </div>
-                  </div>
+                </div>
 
-                  <div className="text-right shrink-0 text-xs">
-                    <div className="font-bold text-neutral-900">
-                      {formatPKR(item.price * item.quantity)}
+                <div className="flex items-center gap-2">
+                    <button onClick={() => setInvoiceModalOpen(true)} className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-neutral-50 border border-neutral-200 text-neutral-700 rounded-xl text-xs font-semibold shadow-2xs transition-all">
+                        <Printer className="w-3.5 h-3.5"/>
+                        <span>Print Invoice</span>
+                    </button>
+                    <button onClick={() => setTrackingModalOpen(true)} className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-neutral-50 border border-neutral-200 text-neutral-700 rounded-xl text-xs font-semibold shadow-2xs transition-all">
+                        <Truck className="w-3.5 h-3.5"/>
+                        <span>{order.trackingNumber ? 'Update Tracking' : 'Add Tracking'}</span>
+                    </button>
+                </div>
+            </div>
+
+            {/* Status Stepper */}
+            {order.status !== 'Cancelled' && (
+                <div className="bg-white p-6 rounded-2xl border border-neutral-200/80 shadow-2xs">
+                    <h3 className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-8">Fulfillment Progress</h3>
+                    <div className="relative flex flex-col sm:flex-row items-center justify-between gap-8 sm:gap-4 px-2">
+                        <div className="hidden sm:block absolute top-4 left-0 w-full h-0.5 bg-neutral-100 z-0" />
+                        {timelineSteps.map((step, idx) => {
+                            const isCompleted = idx <= currentStepIndex;
+                            const isCurrent = idx === currentStepIndex;
+                            return (
+                                <div 
+                                    key={step} 
+                                    onClick={() => updateOrderStatus(order.id, step)}
+                                    className="relative z-10 flex sm:flex-col items-center gap-4 sm:gap-2 cursor-pointer group flex-1"
+                                >
+                                    <div className={cn(
+                                        "w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-300",
+                                        isCurrent ? "bg-neutral-900 text-white ring-4 ring-neutral-200 scale-110" :
+                                        isCompleted ? "bg-neutral-900 text-white" : "bg-white text-neutral-400 border-2 border-neutral-100"
+                                    )}>
+                                        {isCompleted ? <CheckCircle2 className="w-4 h-4"/> : idx + 1}
+                                    </div>
+                                    <div className="text-left sm:text-center">
+                                        <span className={cn("text-[10px] font-black uppercase tracking-tighter block", isCompleted ? "text-neutral-900" : "text-neutral-400")}>{step}</span>
+                                        {isCurrent && <span className="text-[8px] text-[#B08D57] font-black uppercase tracking-widest">Active</span>}
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
-                    <div className="text-neutral-500 text-[11px]">
-                      {formatPKR(item.price)} × {item.quantity}
+                </div>
+            )}
+
+            {/* Main Content Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                {/* Left: Items and Notes */}
+                <div className="lg:col-span-2 space-y-6">
+                    
+                    {/* Items List */}
+                    <div className="bg-white rounded-2xl border border-neutral-200/80 shadow-2xs overflow-hidden">
+                        <div className="p-5 border-b border-neutral-100 flex items-center justify-between">
+                            <h3 className="text-sm font-bold text-neutral-900 uppercase tracking-wider">Order Items</h3>
+                            <span className="text-xs font-bold text-neutral-400 bg-neutral-50 px-2 py-1 rounded-lg">
+                                {order.items?.length || 0} Products
+                            </span>
+                        </div>
+                        <div className="divide-y divide-neutral-50">
+                            {order.items?.map((item, idx) => (
+                                <div key={idx} className="p-4 flex items-center justify-between gap-4 hover:bg-neutral-50/50 transition-colors">
+                                    <div className="flex items-center gap-3">
+                                        <img src={item.productImage} className="w-14 h-14 rounded-xl object-cover border border-neutral-100" alt=""/>
+                                        <div className="min-w-0">
+                                            <h4 className="font-bold text-neutral-900 text-xs">{item.productName}</h4>
+                                            <p className="text-[10px] text-neutral-400 font-mono mt-0.5">SKU: {item.sku}</p>
+                                            <div className="flex gap-1.5 mt-1.5">
+                                                <span className="text-[9px] font-black uppercase bg-neutral-100 px-1.5 py-0.5 rounded text-neutral-600">Size: {item.size}</span>
+                                                <span className="text-[9px] font-black uppercase bg-neutral-100 px-1.5 py-0.5 rounded text-neutral-600">Color: {item.color}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="font-black text-neutral-900 text-xs">{formatPKR(item.price * item.quantity)}</div>
+                                        <div className="text-[10px] text-neutral-400">{formatPKR(item.price)} × {item.quantity}</div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Financial Summary */}
+                        <div className="bg-neutral-50/50 p-6 border-t border-neutral-100 space-y-3">
+                            <div className="flex justify-between text-xs text-neutral-500">
+                                <span>Subtotal</span>
+                                <span className="font-bold text-neutral-900">{formatPKR(order.subtotal)}</span>
+                            </div>
+                            <div className="flex justify-between text-xs text-neutral-500">
+                                <span>Shipping Fee</span>
+                                <span className="font-bold text-neutral-900">{formatPKR(order.shippingFee)}</span>
+                            </div>
+                            {order.discount > 0 && (
+                                <div className="flex justify-between text-xs text-emerald-600">
+                                    <span>Discount Applied</span>
+                                    <span className="font-bold">-{formatPKR(order.discount)}</span>
+                                </div>
+                            )}
+                            <div className="flex justify-between text-xs text-neutral-500">
+                                <span>Tax (GST 5%)</span>
+                                <span className="font-bold text-neutral-900">{formatPKR(order.tax)}</span>
+                            </div>
+                            <div className="pt-3 border-t border-neutral-200 flex justify-between items-center">
+                                <span className="text-xs font-black uppercase tracking-widest text-neutral-900">Net Total</span>
+                                <span className="text-lg font-black text-neutral-900">{formatPKR(order.total)}</span>
+                            </div>
+                        </div>
                     </div>
-                  </div>
-                </div>))}
+
+                    {/* Staff Notes Section */}
+                    <div className="bg-white p-6 rounded-2xl border border-neutral-200/80 shadow-2xs space-y-6">
+                        <h3 className="text-xs font-black text-neutral-900 uppercase tracking-widest flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-[#B08D57]"/> Staff Activity & Private Notes
+                        </h3>
+                        <form onSubmit={handleAddNote} className="flex gap-2">
+                            <input 
+                                type="text" 
+                                value={newNote} 
+                                onChange={(e) => setNewNote(e.target.value)}
+                                placeholder="Write an internal note..." 
+                                className="flex-1 bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-2.5 text-xs font-medium outline-none focus:bg-white focus:border-neutral-900 transition-all"
+                            />
+                            <button type="submit" className="px-5 py-2.5 bg-neutral-900 text-white rounded-xl text-xs font-bold hover:bg-neutral-800 transition-all flex items-center gap-2 shadow-sm">
+                                <Send className="w-3.5 h-3.5" /> Post
+                            </button>
+                        </form>
+                        <div className="space-y-4">
+                            {order.notes?.map((note, idx) => (
+                                <div key={idx} className="p-4 bg-neutral-50 rounded-2xl border border-neutral-100 flex flex-col gap-1">
+                                    <div className="flex justify-between items-center mb-1">
+                                        <span className="text-[10px] font-black text-neutral-900 uppercase">{note.author || 'System User'}</span>
+                                        <span className="text-[9px] text-neutral-400 font-bold">{formatDate(note.date)}</span>
+                                    </div>
+                                    <p className="text-xs text-neutral-600 leading-relaxed">{note.text}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Right: Info Panels */}
+                <div className="space-y-6">
+                    {/* Customer Info Card */}
+                    <div className="bg-white p-6 rounded-2xl border border-neutral-200 shadow-2xs space-y-6">
+                        <div className="flex items-center gap-2 text-neutral-900 border-b border-neutral-50 pb-4">
+                            <User className="w-4 h-4 text-[#B08D57]"/>
+                            <h3 className="text-xs font-black uppercase tracking-widest">Customer Record</h3>
+                        </div>
+                        <div className="space-y-4">
+                            <div>
+                                <p className="text-[10px] font-black text-neutral-400 uppercase mb-1">Full Name</p>
+                                <p className="text-sm font-bold text-neutral-900">{order.customerName}</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-neutral-50 flex items-center justify-center text-neutral-400"><Mail className="w-4 h-4"/></div>
+                                <div className="text-xs font-medium text-neutral-600">{order.customerEmail}</div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-neutral-50 flex items-center justify-center text-neutral-400"><Phone className="w-4 h-4"/></div>
+                                <div className="text-xs font-bold text-neutral-900">{order.customerPhone}</div>
+                            </div>
+                        </div>
+                        <div className="pt-4 border-t border-neutral-50">
+                            <div className="flex items-center gap-2 mb-3">
+                                <MapPin className="w-3.5 h-3.5 text-[#B08D57]"/>
+                                <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Shipping Destination</span>
+                            </div>
+                            <div className="bg-neutral-50 p-4 rounded-xl text-xs text-neutral-600 leading-relaxed">
+                                <p>{order.shippingAddress?.street}</p>
+                                <p className="font-bold text-neutral-900 mt-1">{order.shippingAddress?.city}, {order.shippingAddress?.postalCode}</p>
+                                <p className="uppercase tracking-widest text-[10px] font-bold mt-2 text-neutral-400">Pakistan</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Payment Status Card */}
+                    <div className="bg-white p-6 rounded-2xl border border-neutral-200 shadow-2xs space-y-4">
+                        <div className="flex items-center gap-2 text-neutral-900">
+                            <CreditCard className="w-4 h-4 text-[#B08D57]"/>
+                            <h3 className="text-xs font-black uppercase tracking-widest">Finance & Billing</h3>
+                        </div>
+                        <div className="space-y-3">
+                            <div className="flex justify-between items-center text-xs">
+                                <span className="font-medium text-neutral-500">Payment Gateway:</span>
+                                <span className="font-bold text-neutral-900">{order.paymentMethod}</span>
+                            </div>
+                            <div className="space-y-1.5 pt-2">
+                                <label className="text-[9px] font-black text-neutral-400 uppercase tracking-widest">Payment Status</label>
+                                <select 
+                                    value={order.paymentStatus} 
+                                    onChange={(e) => updatePaymentStatus(order.id, e.target.value)}
+                                    className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-neutral-900"
+                                >
+                                    <option value="Paid">Mark as Paid</option>
+                                    <option value="Pending">Mark as Pending</option>
+                                    <option value="Refunded">Refund Processed</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Action Panel */}
+                    <div className="bg-neutral-900 p-6 rounded-2xl shadow-xl space-y-3">
+                        <h3 className="text-[10px] font-black text-white/50 uppercase tracking-widest mb-4">Quick Fulfillment</h3>
+                        <button 
+                            onClick={() => updateOrderStatus(order.id, 'Delivered')}
+                            className="w-full py-3 bg-[#B08D57] hover:bg-[#967548] text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg"
+                        >
+                            Mark as Delivered
+                        </button>
+                        <button 
+                            onClick={() => updateOrderStatus(order.id, 'Cancelled')}
+                            className="w-full py-3 bg-white/10 hover:bg-rose-600/20 text-white border border-white/10 rounded-xl text-xs font-bold transition-all"
+                        >
+                            Cancel Transaction
+                        </button>
+                    </div>
+                </div>
             </div>
 
-            {/* Financial Totals Breakdown */}
-            <div className="bg-neutral-50/60 p-5 border-t border-neutral-100 space-y-2 text-xs">
-              <div className="flex justify-between text-neutral-600">
-                <span>Subtotal</span>
-                <span className="font-semibold text-neutral-900">{formatPKR(order.subtotal)}</span>
-              </div>
+            {/* MODAL: Tracking Number */}
+            <Modal isOpen={trackingModalOpen} onClose={() => setTrackingModalOpen(false)} title="Update Tracking Logistics" maxWidth="sm">
+                <div className="space-y-6 p-2">
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest flex items-center gap-2">
+                            <Truck className="w-3.5 h-3.5"/> Carrier Tracking Number
+                        </label>
+                        <input 
+                            type="text" 
+                            value={trackingNumberInput} 
+                            onChange={(e) => setTrackingNumberInput(e.target.value)}
+                            placeholder="e.g. TCS-772910482PK" 
+                            className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm font-mono outline-none focus:border-neutral-900"
+                        />
+                        <p className="text-[10px] text-neutral-400 italic">Tracking details will be shared with the customer via SMS/Email.</p>
+                    </div>
+                    <div className="flex gap-3">
+                        <button onClick={() => setTrackingModalOpen(false)} className="flex-1 py-3 border border-neutral-200 rounded-xl text-xs font-bold text-neutral-600 hover:bg-neutral-50">Discard</button>
+                        <button onClick={handleUpdateTracking} className="flex-1 py-3 bg-neutral-900 text-white rounded-xl text-xs font-bold shadow-lg">Save & Dispatch</button>
+                    </div>
+                </div>
+            </Modal>
 
-              {order.discount > 0 && (<div className="flex justify-between text-emerald-700 font-medium">
-                  <span>Discount ({order.couponCode || 'Promotional'})</span>
-                  <span>-{formatPKR(order.discount)}</span>
-                </div>)}
+            {/* MODAL: Print Invoice (Faisal Kamir Branding) */}
+            <Modal isOpen={invoiceModalOpen} onClose={() => setInvoiceModalOpen(false)} title={`Invoice ${order.orderNumber}`} maxWidth="lg">
+                <div className="space-y-6">
+                    <div id="printable-invoice" className="bg-white p-8 border border-neutral-200 rounded-2xl space-y-8 font-sans text-neutral-900">
+                        {/* Invoice Header */}
+                        <div className="flex justify-between items-start border-b border-neutral-200 pb-8">
+                            <div className="space-y-2">
+                                <h1 className="text-2xl font-black tracking-[0.2em] uppercase font-serif italic text-neutral-900">FAISAL KAMIR</h1>
+                                <p className="text-[11px] font-bold text-neutral-400 uppercase tracking-widest">Luxury Couture & Apparel</p>
+                                <div className="text-[10px] text-neutral-500 mt-4 leading-relaxed">
+                                    Lahore, Pakistan<br />
+                                    support@faisalkamir.com<br />
+                                    +92 300 0000000
+                                </div>
+                            </div>
+                            <div className="text-right space-y-2">
+                                <h2 className="text-lg font-black text-neutral-900 uppercase tracking-widest">Tax Invoice</h2>
+                                <p className="font-mono text-sm font-bold bg-neutral-900 text-white px-3 py-1 rounded inline-block">{order.orderNumber}</p>
+                                <p className="text-[10px] text-neutral-400 font-bold uppercase mt-2">Date: {formatDate(order.date)}</p>
+                            </div>
+                        </div>
 
-              <div className="flex justify-between text-neutral-600">
-                <span>Shipping & Delivery (Nationwide Flat)</span>
-                <span className="font-semibold text-neutral-900">
-                  {order.shippingFee === 0 ? 'FREE' : formatPKR(order.shippingFee)}
-                </span>
-              </div>
+                        {/* Customer Info */}
+                        <div className="grid grid-cols-2 gap-10">
+                            <div className="space-y-3">
+                                <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Billed To:</span>
+                                <div className="text-xs space-y-1">
+                                    <p className="font-black text-neutral-900 text-sm uppercase">{order.customerName}</p>
+                                    <p className="text-neutral-500 font-medium">{order.customerPhone}</p>
+                                    <p className="text-neutral-500 font-medium">{order.customerEmail}</p>
+                                </div>
+                            </div>
+                            <div className="space-y-3">
+                                <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Ship To Destination:</span>
+                                <div className="text-xs space-y-1">
+                                    <p className="font-bold text-neutral-900">{order.shippingAddress?.street}</p>
+                                    <p className="font-black text-neutral-900 uppercase">{order.shippingAddress?.city}, Pakistan</p>
+                                    <p className="text-neutral-500 font-bold tracking-widest">{order.shippingAddress?.postalCode}</p>
+                                </div>
+                            </div>
+                        </div>
 
-              <div className="flex justify-between text-neutral-600">
-                <span>Estimated Sales Tax (GST)</span>
-                <span className="font-semibold text-neutral-900">{formatPKR(order.tax)}</span>
-              </div>
+                        {/* Invoice Table */}
+                        <table className="w-full text-left text-xs border-collapse">
+                            <thead>
+                                <tr className="border-b-2 border-neutral-900 text-[10px] font-black text-neutral-900 uppercase tracking-widest">
+                                    <th className="py-4 px-2">Garment Description</th>
+                                    <th className="py-4 px-2">Variant</th>
+                                    <th className="py-4 px-2 text-right">Unit Price</th>
+                                    <th className="py-4 px-2 text-center">Qty</th>
+                                    <th className="py-4 px-2 text-right">Line Total</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-neutral-100">
+                                {order.items?.map((it, i) => (
+                                    <tr key={i} className="text-neutral-700 font-medium">
+                                        <td className="py-4 px-2 font-bold">{it.productName}</td>
+                                        <td className="py-4 px-2 text-neutral-400 uppercase">{it.size} / {it.color}</td>
+                                        <td className="py-4 px-2 text-right font-mono">{formatPKR(it.price)}</td>
+                                        <td className="py-4 px-2 text-center font-bold">{it.quantity}</td>
+                                        <td className="py-4 px-2 text-right font-black text-neutral-900 font-mono">{formatPKR(it.price * it.quantity)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
 
-              <div className="pt-2 border-t border-neutral-200 flex justify-between text-sm font-extrabold text-neutral-900">
-                <span>Total Amount</span>
-                <span>{formatPKR(order.total)}</span>
-              </div>
-            </div>
-          </div>
+                        {/* Invoice Footer / Totals */}
+                        <div className="flex justify-end pt-6">
+                            <div className="w-72 space-y-3">
+                                <div className="flex justify-between text-xs">
+                                    <span className="font-bold text-neutral-400 uppercase tracking-widest">Subtotal</span>
+                                    <span className="font-black text-neutral-900">{formatPKR(order.subtotal)}</span>
+                                </div>
+                                <div className="flex justify-between text-xs">
+                                    <span className="font-bold text-neutral-400 uppercase tracking-widest">Shipping</span>
+                                    <span className="font-black text-neutral-900">{formatPKR(order.shippingFee)}</span>
+                                </div>
+                                <div className="flex justify-between text-xs border-b border-neutral-100 pb-3">
+                                    <span className="font-bold text-neutral-400 uppercase tracking-widest">Tax (GST)</span>
+                                    <span className="font-black text-neutral-900">{formatPKR(order.tax)}</span>
+                                </div>
+                                <div className="flex justify-between items-center pt-1">
+                                    <span className="text-[11px] font-black text-neutral-900 uppercase tracking-[0.2em]">Net Total Due</span>
+                                    <span className="text-xl font-black text-neutral-900 font-mono">{formatPKR(order.total)}</span>
+                                </div>
+                            </div>
+                        </div>
 
-          {/* Internal Notes & Activity Log */}
-          <div className="bg-white p-5 sm:p-6 rounded-2xl border border-neutral-200/80 shadow-2xs space-y-4">
-            <h3 className="text-sm font-bold text-neutral-900 uppercase tracking-wider flex items-center gap-2">
-              <FileText className="w-4 h-4"/>
-              <span>Internal Order Notes & Timeline</span>
-            </h3>
-
-            {/* Add note input */}
-            <form onSubmit={handleAddNote} className="flex gap-2">
-              <input type="text" placeholder="Add private staff note (e.g. customer called for size confirmation)..." value={newNote} onChange={(e) => setNewNote(e.target.value)} className="flex-1 px-3.5 py-2 border border-neutral-200 rounded-xl text-xs font-medium text-neutral-900 placeholder:text-neutral-400 focus:outline-hidden focus:ring-2 focus:ring-neutral-900/10 focus:border-neutral-900"/>
-              <button type="submit" className="px-4 py-2 bg-neutral-900 hover:bg-neutral-800 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-xs">
-                <Send className="w-3.5 h-3.5"/>
-                <span>Post Note</span>
-              </button>
-            </form>
-
-            <div className="space-y-3 pt-2">
-              {order.notes.map((n) => (<div key={n.id} className="p-3 bg-neutral-50 rounded-xl border border-neutral-200/70 text-xs">
-                  <div className="flex items-center justify-between text-[11px] text-neutral-500 mb-1">
-                    <span className="font-bold text-neutral-900">{n.author}</span>
-                    <span>{formatDate(n.date)}</span>
-                  </div>
-                  <p className="text-neutral-700 leading-relaxed">{n.text}</p>
-                </div>))}
-            </div>
-          </div>
+                        <div className="text-center pt-12 text-[9px] font-bold text-neutral-300 uppercase tracking-[0.3em]">
+                            This is a computer generated document • No signature required
+                        </div>
+                    </div>
+                    
+                    <div className="flex gap-3">
+                        <button onClick={() => setInvoiceModalOpen(false)} className="flex-1 py-3 border border-neutral-200 rounded-xl text-xs font-bold text-neutral-500">Close Preview</button>
+                        <button onClick={handlePrint} className="flex-1 py-3 bg-neutral-900 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-lg">
+                            <Printer className="w-4 h-4" /> Print Document
+                        </button>
+                    </div>
+                </div>
+            </Modal>
         </div>
-
-        {/* Right Column: Customer & Payment Details */}
-        <div className="space-y-6">
-          {/* Customer Details Card */}
-          <div className="bg-white p-5 rounded-2xl border border-neutral-200/80 shadow-2xs space-y-4 text-xs">
-            <h3 className="font-bold uppercase tracking-wider text-neutral-900 text-xs flex items-center gap-2">
-              <User className="w-4 h-4"/>
-              <span>Customer Information</span>
-            </h3>
-
-            <div className="space-y-2">
-              <div className="font-bold text-neutral-900 text-sm">{order.customerName}</div>
-              <div className="flex items-center gap-2 text-neutral-600">
-                <Mail className="w-3.5 h-3.5 text-neutral-400"/>
-                <span>{order.customerEmail}</span>
-              </div>
-              <div className="flex items-center gap-2 text-neutral-600">
-                <Phone className="w-3.5 h-3.5 text-neutral-400"/>
-                <span>{order.customerPhone}</span>
-              </div>
-            </div>
-
-            {/* Shipping Address */}
-            <div className="pt-3 border-t border-neutral-100">
-              <div className="font-bold text-neutral-900 text-[11px] uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5"/>
-                <span>Shipping Address</span>
-              </div>
-              <div className="text-neutral-600 leading-relaxed">
-                <p>{order.shippingAddress.street}</p>
-                <p className="font-semibold text-neutral-800">
-                  {order.shippingAddress.city}, {order.shippingAddress.postalCode}
-                </p>
-                <p>{order.shippingAddress.country}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Payment Info Card */}
-          <div className="bg-white p-5 rounded-2xl border border-neutral-200/80 shadow-2xs space-y-3 text-xs">
-            <h3 className="font-bold uppercase tracking-wider text-neutral-900 text-xs flex items-center gap-2">
-              <CreditCard className="w-4 h-4"/>
-              <span>Payment Details</span>
-            </h3>
-
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-neutral-500">Method:</span>
-                <span className="font-bold text-neutral-900">{order.paymentMethod}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-neutral-500">Status:</span>
-                <select value={order.paymentStatus} onChange={(e) => updatePaymentStatus(order.id, e.target.value)} className="px-2 py-0.5 bg-neutral-50 border border-neutral-200 rounded font-semibold text-xs text-neutral-800">
-                  <option value="Paid">Paid</option>
-                  <option value="Pending">Pending</option>
-                  <option value="Refunded">Refunded</option>
-                  <option value="Failed">Failed</option>
-                </select>
-              </div>
-              {order.transactionId && (<div className="flex justify-between">
-                  <span className="text-neutral-500">Txn ID:</span>
-                  <span className="font-mono text-neutral-700">{order.transactionId}</span>
-                </div>)}
-            </div>
-          </div>
-
-          {/* Quick Actions Card */}
-          <div className="bg-white p-5 rounded-2xl border border-neutral-200/80 shadow-2xs space-y-2 text-xs">
-            <h3 className="font-bold uppercase tracking-wider text-neutral-900 text-xs">Order Actions</h3>
-            <button onClick={() => updateOrderStatus(order.id, 'Delivered')} className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl shadow-xs transition-colors">
-              Mark as Delivered
-            </button>
-            <button onClick={() => updateOrderStatus(order.id, 'Cancelled')} className="w-full py-2 bg-white hover:bg-rose-50 border border-neutral-200 text-rose-600 font-semibold rounded-xl transition-colors">
-              Cancel Order
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Tracking Number Modal */}
-      <Modal isOpen={trackingModalOpen} onClose={() => setTrackingModalOpen(false)} title="Fulfillment & Tracking Code" maxWidth="sm">
-        <div className="space-y-4 text-xs">
-          <div>
-            <label className="block font-semibold text-neutral-700 mb-1">
-              Courier Tracking Number (TCS / Leopards / Trax / Call Courier)
-            </label>
-            <input type="text" placeholder="e.g. TCS-772910482PK" value={trackingNumberInput} onChange={(e) => setTrackingNumberInput(e.target.value)} className="w-full px-3 py-2 border border-neutral-200 rounded-xl font-mono text-xs text-neutral-900 focus:outline-hidden"/>
-          </div>
-          <div className="flex justify-end gap-2">
-            <button onClick={() => setTrackingModalOpen(false)} className="px-4 py-2 border border-neutral-200 rounded-lg">
-              Cancel
-            </button>
-            <button onClick={() => {
-            order.trackingNumber = trackingNumberInput;
-            if (order.status === 'Processing' || order.status === 'Confirmed') {
-                updateOrderStatus(order.id, 'Shipped');
-            }
-            setTrackingModalOpen(false);
-        }} className="px-4 py-2 bg-neutral-900 text-white font-semibold rounded-lg">
-              Save Tracking
-            </button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* Printable Invoice Modal */}
-      <Modal isOpen={invoiceModalOpen} onClose={() => setInvoiceModalOpen(false)} title={`Invoice ${order.orderNumber}`} maxWidth="lg" footer={<>
-            <button onClick={() => setInvoiceModalOpen(false)} className="px-4 py-2 border border-neutral-200 rounded-lg text-xs font-semibold">
-              Close
-            </button>
-            <button onClick={handlePrint} className="px-4 py-2 bg-neutral-900 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5">
-              <Printer className="w-3.5 h-3.5"/>
-              <span>Print Document</span>
-            </button>
-          </>}>
-        <div className="p-4 border border-neutral-200 rounded-xl bg-white text-xs space-y-6 printable-area">
-          {/* Invoice Header */}
-          <div className="flex justify-between items-start border-b border-neutral-200 pb-4">
-            <div>
-              <h1 className="text-lg font-black tracking-wider text-neutral-900 font-serif">
-                NAVEED & CO.
-              </h1>
-              <p className="text-[11px] text-neutral-500">Haute Couture & Luxury Apparel</p>
-              <p className="text-[11px] text-neutral-500">Lahore, Pakistan • NTN: 8941204-7</p>
-            </div>
-            <div className="text-right">
-              <h2 className="text-base font-bold text-neutral-900">INVOICE / PACKING SLIP</h2>
-              <p className="font-mono text-neutral-600">{order.orderNumber}</p>
-              <p className="text-[11px] text-neutral-400">Date: {formatDate(order.date)}</p>
-            </div>
-          </div>
-
-          {/* Bill To / Ship To */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <span className="font-bold text-[10px] uppercase tracking-wider text-neutral-400 block mb-1">
-                Billed To:
-              </span>
-              <p className="font-bold text-neutral-900">{order.customerName}</p>
-              <p className="text-neutral-600">{order.customerPhone}</p>
-              <p className="text-neutral-600">{order.customerEmail}</p>
-            </div>
-            <div>
-              <span className="font-bold text-[10px] uppercase tracking-wider text-neutral-400 block mb-1">
-                Ship To:
-              </span>
-              <p className="text-neutral-800">{order.shippingAddress.street}</p>
-              <p className="font-semibold text-neutral-900">
-                {order.shippingAddress.city}, {order.shippingAddress.postalCode}
-              </p>
-              <p className="text-neutral-600">Pakistan</p>
-            </div>
-          </div>
-
-          {/* Items Table */}
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="border-b border-neutral-200 bg-neutral-50 text-[10px] font-bold text-neutral-500 uppercase">
-                <th className="p-2">Item Description</th>
-                <th className="p-2">Variant</th>
-                <th className="p-2 text-right">Price</th>
-                <th className="p-2 text-center">Qty</th>
-                <th className="p-2 text-right">Total</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-100">
-              {order.items.map((it, i) => (<tr key={i}>
-                  <td className="p-2 font-medium">{it.productName}</td>
-                  <td className="p-2 text-neutral-500">{it.size} / {it.color}</td>
-                  <td className="p-2 text-right">{formatPKR(it.price)}</td>
-                  <td className="p-2 text-center">{it.quantity}</td>
-                  <td className="p-2 text-right font-bold">{formatPKR(it.price * it.quantity)}</td>
-                </tr>))}
-            </tbody>
-          </table>
-
-          {/* Invoice Totals */}
-          <div className="flex justify-end pt-2">
-            <div className="w-64 space-y-1 text-xs">
-              <div className="flex justify-between text-neutral-600">
-                <span>Subtotal:</span>
-                <span>{formatPKR(order.subtotal)}</span>
-              </div>
-              <div className="flex justify-between text-neutral-600">
-                <span>Shipping:</span>
-                <span>{formatPKR(order.shippingFee)}</span>
-              </div>
-              {order.discount > 0 && (<div className="flex justify-between text-emerald-700">
-                  <span>Discount:</span>
-                  <span>-{formatPKR(order.discount)}</span>
-                </div>)}
-              <div className="flex justify-between text-neutral-600">
-                <span>Tax (GST):</span>
-                <span>{formatPKR(order.tax)}</span>
-              </div>
-              <div className="flex justify-between font-bold text-neutral-900 border-t border-neutral-200 pt-1 text-sm">
-                <span>Total Due:</span>
-                <span>{formatPKR(order.total)}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="text-center text-[10px] text-neutral-400 pt-4 border-t border-neutral-100">
-            Thank you for choosing Naveed & Co. • For customer support contact +92 300 1234567
-          </div>
-        </div>
-      </Modal>
-    </div>);
+    );
 };

@@ -1,26 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
     Search, UserPlus, Mail, Shield, 
     Trash2, Edit2, CheckCircle2, XCircle, 
-    UserCheck, Users, ShieldAlert, X
+    UserCheck, Users, ShieldAlert, X, Loader2
 } from 'lucide-react';
+import { useProductStore } from '../../store/UseProductsStore.js';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { formatDate } from '../../utils/formatters';
 import { cn } from '../../utils/cn';
 
 const Staff = () => {
-    // 1. States
+    // Zustand Store
+    const { staff: staffList, fetchStaff, addStaff, updateStaff, deleteStaff, isLoading } = useProductStore();
+
+    // Local States for UI
     const [searchTerm, setSearchTerm] = useState("");
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingMember, setEditingMember] = useState(null);
     const [formData, setFormData] = useState({ name: '', email: '', role: 'Support', status: 'Active' });
     
-    const [staffList, setStaffList] = useState([
-        { id: "STF-001", name: "Faisal Kamir", email: "faisal@apexiums.com", role: "Administrator", status: "Active", lastActive: new Date().toISOString(), avatar: "https://ui-avatars.com/api/?name=Faisal+Kamir&background=181818&color=fff" },
-        { id: "STF-002", name: "Zeeshan Khan", email: "zeeshan@apexiums.com", role: "Manager", status: "Active", lastActive: new Date().toISOString(), avatar: "https://ui-avatars.com/api/?name=Zeeshan+Khan&background=B08D57&color=fff" }
-    ]);
+    // Fetch data on mount
+    useEffect(() => {
+        fetchStaff();
+    }, []);
 
-    // 2. Open Modal for Add/Edit
+    // Open Modal for Add/Edit
     const openModal = (member = null) => {
         if (member) {
             setEditingMember(member);
@@ -32,29 +36,29 @@ const Staff = () => {
         setIsModalOpen(true);
     };
 
-    // 3. Handle Form Submit
-    const handleSubmit = (e) => {
+    // Handle Form Submit (API Integration)
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        if (editingMember) {
-            // Update Existing
-            setStaffList(prev => prev.map(m => m.id === editingMember.id ? { ...m, ...formData } : m));
-        } else {
-            // Add New
-            const newMember = {
-                ...formData,
-                id: `STF-00${staffList.length + 1}`,
-                lastActive: new Date().toISOString(),
-                avatar: `https://ui-avatars.com/api/?name=${formData.name.replace(' ', '+')}&background=neutral&color=fff`
-            };
-            setStaffList([...staffList, newMember]);
+        try {
+            if (editingMember) {
+                await updateStaff(editingMember.id, formData);
+            } else {
+                await addStaff({
+                    ...formData,
+                    lastActive: new Date().toISOString(),
+                    avatar: `https://ui-avatars.com/api/?name=${formData.name.replace(' ', '+')}&background=neutral&color=fff`
+                });
+            }
+            setIsModalOpen(false);
+        } catch (err) {
+            alert("Failed to save staff member");
         }
-        setIsModalOpen(false);
     };
 
-    // 4. Other Actions
-    const handleDelete = (id) => {
+    // Delete Action
+    const handleDelete = async (id) => {
         if (window.confirm("Remove this staff member?")) {
-            setStaffList(prev => prev.filter(m => m.id !== id));
+            await deleteStaff(id);
         }
     };
 
@@ -104,48 +108,55 @@ const Staff = () => {
                 </div>
             </div>
 
-            {/* Table */}
+            {/* Table / Loading State */}
             <div className="bg-white rounded-2xl border border-neutral-200 shadow-2xs overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs">
-                        <thead className="bg-neutral-50 text-neutral-500 uppercase text-[10px] font-bold border-b border-neutral-100">
-                            <tr>
-                                <th className="px-5 py-4">Staff Member</th>
-                                <th className="px-5 py-4">Role</th>
-                                <th className="px-5 py-4">Status</th>
-                                <th className="px-5 py-4">Last Active</th>
-                                <th className="px-5 py-4 text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-neutral-100">
-                            {filteredStaff.map((member) => (
-                                <tr key={member.id} className="hover:bg-neutral-50/30 transition-colors">
-                                    <td className="px-5 py-4">
-                                        <div className="flex items-center gap-3">
-                                            <img src={member.avatar} alt="" className="w-8 h-8 rounded-lg border border-neutral-200 object-cover" />
-                                            <div className="flex flex-col">
-                                                <span className="font-bold text-neutral-900">{member.name}</span>
-                                                <span className="text-[10px] text-neutral-500 font-mono">{member.email}</span>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-5 py-4"><div className="flex items-center gap-1.5 font-medium"><Shield className="w-3.5 h-3.5 text-neutral-400"/>{member.role}</div></td>
-                                    <td className="px-5 py-4"><StatusBadge status={member.status} size="sm" /></td>
-                                    <td className="px-5 py-4 text-neutral-500">{formatDate(member.lastActive)}</td>
-                                    <td className="px-5 py-4 text-right">
-                                        <div className="flex items-center justify-end gap-1.5">
-                                            <button onClick={() => openModal(member)} className="p-1.5 bg-neutral-50 hover:bg-neutral-100 border border-neutral-200 rounded-lg text-neutral-500 transition-colors"><Edit2 className="w-3.5 h-3.5"/></button>
-                                            <button onClick={() => handleDelete(member.id)} className="p-1.5 bg-rose-50 border border-rose-100 text-rose-500 hover:bg-rose-100 rounded-lg transition-colors"><Trash2 className="w-3.5 h-3.5"/></button>
-                                        </div>
-                                    </td>
+                    {isLoading && staffList.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-20 text-neutral-400">
+                            <Loader2 className="w-8 h-8 animate-spin mb-2" />
+                            <p className="text-[10px] font-black uppercase tracking-widest">Loading Team...</p>
+                        </div>
+                    ) : (
+                        <table className="w-full text-left text-xs">
+                            <thead className="bg-neutral-50 text-neutral-500 uppercase text-[10px] font-bold border-b border-neutral-100">
+                                <tr>
+                                    <th className="px-5 py-4">Staff Member</th>
+                                    <th className="px-5 py-4">Role</th>
+                                    <th className="px-5 py-4">Status</th>
+                                    <th className="px-5 py-4">Last Active</th>
+                                    <th className="px-5 py-4 text-right">Actions</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="divide-y divide-neutral-100">
+                                {filteredStaff.map((member) => (
+                                    <tr key={member.id} className="hover:bg-neutral-50/30 transition-colors">
+                                        <td className="px-5 py-4">
+                                            <div className="flex items-center gap-3">
+                                                <img src={member.avatar} alt="" className="w-8 h-8 rounded-lg border border-neutral-200 object-cover" />
+                                                <div className="flex flex-col">
+                                                    <span className="font-bold text-neutral-900">{member.name}</span>
+                                                    <span className="text-[10px] text-neutral-500 font-mono">{member.email}</span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-5 py-4"><div className="flex items-center gap-1.5 font-medium"><Shield className="w-3.5 h-3.5 text-neutral-400"/>{member.role}</div></td>
+                                        <td className="px-5 py-4"><StatusBadge status={member.status} size="sm" /></td>
+                                        <td className="px-5 py-4 text-neutral-500">{formatDate(member.lastActive)}</td>
+                                        <td className="px-5 py-4 text-right">
+                                            <div className="flex items-center justify-end gap-1.5">
+                                                <button onClick={() => openModal(member)} className="p-1.5 bg-neutral-50 hover:bg-neutral-100 border border-neutral-200 rounded-lg text-neutral-500 transition-colors"><Edit2 className="w-3.5 h-3.5"/></button>
+                                                <button onClick={() => handleDelete(member.id)} className="p-1.5 bg-rose-50 border border-rose-100 text-rose-500 hover:bg-rose-100 rounded-lg transition-colors"><Trash2 className="w-3.5 h-3.5"/></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
                 </div>
             </div>
 
-            {/* --- ADD/EDIT MODAL --- */}
+            {/* Modal - Kept Original Features */}
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-900/40 backdrop-blur-sm">
                     <div className="bg-white rounded-2xl shadow-xl border border-neutral-200 w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">

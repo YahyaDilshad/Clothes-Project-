@@ -39,6 +39,7 @@ import Staff from './pages/Staff/staff';
 import Permissions from './pages/Permission/permission';
 import Expense from './pages/Expense/expense';
 import Revenue from './pages/Revenue/revenue';
+import SalesPage from './pages/Sales/Sales';
 
 export function App() {
   return (
@@ -67,6 +68,7 @@ export function App() {
             <Route path="/permissions" element={<Permissions/>} />
             <Route path="/exchange" element={<Exchange/>} />
             <Route path="/billing" element={<BillingPage/>} />
+            <Route path="/sales" element={<SalesPage/>} />
             {/* Dashboard Redirect */}
             <Route path="dashboard" element={<Navigate to="/" replace />} />
             
