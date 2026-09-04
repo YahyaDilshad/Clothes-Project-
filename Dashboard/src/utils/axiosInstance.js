@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'https://clothes-project-production.up.railway.app/';
 
 // 1. Axios instance banayein
 const api = axios.create({
