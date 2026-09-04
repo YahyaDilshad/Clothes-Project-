@@ -30,31 +30,65 @@ const register = catchAsync(async (req, res) => {
 
 // POST /api/auth/login
 const login = catchAsync(async (req, res) => {
-  const { email, password } = req.body;
+    const { email, password } = req.body;
 
-  if (!email || !password) {
-    throw new ApiError(400, 'Email and password are required');
-  }
+    // Validate input
+    if (!email || !password) {
+        throw new ApiError(400, 'Email and password are required');
+    }
 
-  const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
-  if (!user || !(await user.comparePassword(password))) {
-    throw new ApiError(401, 'Invalid email or password');
-  }
+    // Find user and explicitly include password
+    const user = await User.findOne({
+        email: email.trim().toLowerCase(),
+    }).select('+password');
 
-  if (!user.isActive) {
-    throw new ApiError(403, 'This account has been deactivated');
-  }
+    // Invalid credentials
+    if (!user) {
+        throw new ApiError(401, 'Invalid email or password');
+    }
 
-  user.lastLoginAt = new Date();
-  await user.save();
+    // Check password
+    const isPasswordValid = await user.comparePassword(password);
 
-  const token = generateToken(user._id);
-  sendResponse(res, 200, { user: user.toSafeObject(), token }, 'Login successful');
+    if (!isPasswordValid) {
+        throw new ApiError(401, 'Invalid email or password');
+    }
+
+    // Check account status
+    if (!user.isActive) {
+        throw new ApiError(403, 'This account has been deactivated');
+    }
+
+    // Update last login
+    user.lastLoginAt = new Date();
+    await user.save({ validateBeforeSave: false });
+
+    // Generate JWT
+    const token = generateToken(user._id);
+
+    // Send response
+    return sendResponse(
+        res,
+        200,
+        {
+            user: user.toSafeObject(),
+            token,
+        },
+        'Login successful'
+    );
 });
+
 
 // GET /api/auth/me
 const me = catchAsync(async (req, res) => {
-  sendResponse(res, 200, req.user.toSafeObject(), 'Current user fetched');
+    return sendResponse(
+        res,
+        200,
+        req.user.toSafeObject(),
+        'Current user fetched'
+    );
 });
+
+
 
 module.exports = { register, login, me };
